@@ -1,0 +1,8 @@
+---
+- hosts: all
+  roles:
+    - base
+
+- hosts: bastion
+  roles:
+    - bastion

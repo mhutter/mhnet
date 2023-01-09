@@ -1,0 +1,37 @@
+# {{ ansible_managed }}
+AllowGroups sshlogin
+
+# Only allow pubkey authentication
+PubkeyAuthentication yes
+PasswordAuthentication no
+PermitEmptyPasswords no
+PermitRootLogin no
+ChallengeResponseAuthentication no
+GSSAPIAuthentication no
+
+# Change default SSH port
+Port {{ ssh_port }}
+
+# Disable some unneccessary features
+AcceptEnv LANG LC_*
+X11Forwarding no
+PermitUserEnvironment no
+PermitUserRc no
+UseDNS no
+
+# Authentication Settings
+AuthorizedKeysFile .ssh/authorized_keys
+ClientAliveCountMax 2
+ClientAliveInterval 120
+LoginGraceTime 10
+MaxStartups 2:30:10
+StrictModes yes
+MaxAuthTries 6
+MaxSessions 10
+
+# Secure cryptography
+Protocol 2
+Ciphers chacha20-poly1305@openssh.com,aes256-gcm@openssh.com,aes128-gcm@openssh.com,aes256-ctr,aes192-ctr,aes128-ctr
+KexAlgorithms curve25519-sha256@libssh.org,ecdh-sha2-nistp521
+MACs hmac-sha2-512-etm@openssh.com,hmac-sha2-256-etm@openssh.com,hmac-sha2-512,hmac-sha2-256
+HostKey /etc/ssh/ssh_host_ed25519_key

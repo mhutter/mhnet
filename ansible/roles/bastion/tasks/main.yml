@@ -1,0 +1,11 @@
+---
+# Required to act as a Tailscale subnet router
+- name: Enable IP forwarding
+  ansible.posix.sysctl:
+    name: "{{ item.key }}"
+    value: "{{ item.value}}"
+  loop: "{{ sysctls | dict2items }}"
+  vars:
+    sysctls:
+      net.ipv4.ip_forward: '1'
+      net.ipv6.conf.all.forwarding: '1'

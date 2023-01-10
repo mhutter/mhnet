@@ -4,5 +4,6 @@
     - base
 
 - hosts: bastion
+  tags: [bastion]
   roles:
     - bastion

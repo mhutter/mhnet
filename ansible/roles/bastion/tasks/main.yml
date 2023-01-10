@@ -3,9 +3,50 @@
 - name: Enable IP forwarding
   ansible.posix.sysctl:
     name: "{{ item.key }}"
-    value: "{{ item.value}}"
+    value: "{{ item.value }}"
   loop: "{{ sysctls | dict2items }}"
   vars:
     sysctls:
       net.ipv4.ip_forward: '1'
       net.ipv6.conf.all.forwarding: '1'
+
+- name: Install dnf-automatic
+  ansible.builtin.package:
+    name: dnf-automatic
+    state: present
+
+- name: Configure automated updates
+  community.general.ini_file:
+    path: /etc/dnf/automatic.conf
+    section: "{{ item.key.split('.')[0] }}"
+    option: "{{ item.key.split('.')[1] }}"
+    value: "{{ item.value }}"
+  loop: '{{ configs | dict2items }}'
+  vars:
+    configs:
+      # Alternatives include `security`
+      commands.upgrade_type: default
+      # The bastion host can upgrade right away
+      commands.random_sleep: 0
+      commands.download_updates: 'yes'
+      # Default is to only download
+      commands.apply_updates: 'yes'
+
+- name: Configure automated update timer
+  community.general.ini_file:
+    path: /etc/systemd/system/dnf-automatic-install.timer.d/override.conf
+    section: "{{ item.key.split('.')[0] }}"
+    option: "{{ item.key.split('.')[1] }}"
+    value: "{{ item.value }}"
+  loop: '{{ configs | dict2items }}'
+  vars:
+    configs:
+      Timer.OnCalendar: '*-*-* 3:00'
+
+
+- name: Enable automated updates
+  ansible.builtin.systemd:
+    name: dnf-automatic-install.timer
+    daemon_reload: true
+    enabled: true
+    state: started

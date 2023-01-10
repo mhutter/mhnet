@@ -1,6 +1,17 @@
-resource "hcloud_server" "bastion" {
-  name        = "bastion.${var.domain}"
-  server_type = "cx11"
+resource "random_string" "worker" {
+  count  = var.worker_count
+  length = 4
+
+  numeric = true
+  lower   = true
+  upper   = false
+  special = false
+}
+
+resource "hcloud_server" "worker" {
+  count       = var.worker_count
+  name        = "worker-${resource.random_string.worker[count.index].result}.${var.domain}"
+  server_type = "cx21"
   location    = "fsn1"
   image       = "rocky-9"
 
@@ -17,7 +28,7 @@ resource "hcloud_server" "bastion" {
   }
 
   labels = merge(var.default_labels, {
-    "role" = "bastion"
+    "role" = "worker"
   })
 
   depends_on = [

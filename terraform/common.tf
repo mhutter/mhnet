@@ -26,6 +26,21 @@ resource "hcloud_network_subnet" "internal" {
   network_zone = "eu-central"
 }
 
+resource "hcloud_firewall" "default" {
+  name = "default"
+
+  rule {
+    direction = "in"
+    protocol  = "icmp"
+    source_ips = [
+      "0.0.0.0/0",
+      "::/0",
+    ]
+  }
+
+  labels = var.default_labels
+}
+
 # resource "hcloud_load_balancer" "ingress" {
 #   name               = "ingress"
 #   load_balancer_type = "lb11"

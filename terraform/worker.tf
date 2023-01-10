@@ -8,6 +8,12 @@ resource "random_string" "worker" {
   special = false
 }
 
+resource "hcloud_placement_group" "workers" {
+  name   = "workers"
+  type   = "spread"
+  labels = var.default_labels
+}
+
 resource "hcloud_server" "worker" {
   count       = var.worker_count
   name        = "worker-${resource.random_string.worker[count.index].result}.${var.domain}"
@@ -17,6 +23,8 @@ resource "hcloud_server" "worker" {
 
   ssh_keys  = [hcloud_ssh_key.mhnet.id]
   user_data = local.userdata
+
+  placement_group_id = hcloud_placement_group.workers.id
 
   public_net {
     ipv4_enabled = false

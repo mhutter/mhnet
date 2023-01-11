@@ -9,7 +9,7 @@ kubeconfig:
 
 .PHONY: apply
 apply:
-	k0sctl apply --no-wait
+	k0sctl apply
 
 .PHONY: reset
 reset:

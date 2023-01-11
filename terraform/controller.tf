@@ -32,4 +32,10 @@ resource "hcloud_server" "controller" {
   depends_on = [
     hcloud_network_subnet.internal
   ]
+
+  lifecycle {
+    replace_triggered_by = [
+      random_string.controller.result
+    ]
+  }
 }

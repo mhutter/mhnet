@@ -42,4 +42,10 @@ resource "hcloud_server" "worker" {
   depends_on = [
     hcloud_network_subnet.internal
   ]
+
+  lifecycle {
+    replace_triggered_by = [
+      random_string.worker[count.index].result
+    ]
+  }
 }

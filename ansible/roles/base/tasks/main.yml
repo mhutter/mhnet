@@ -5,7 +5,7 @@
     dest: /etc/ssh/sshd_config.d/00-mhnet.conf
     owner: root
     group: root
-    mode: '0600'
+    mode: "0600"
     validate: /usr/sbin/sshd -t -f %s
     backup: true
   notify:
@@ -16,4 +16,4 @@
     path: /etc/dnf/dnf.conf
     section: main
     option: fastestmirror
-    value: '1'
+    value: "1"

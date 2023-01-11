@@ -1,4 +1,0 @@
----
-plugin: hcloud
-connect_with: private_ipv4
-strict: true

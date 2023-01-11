@@ -17,7 +17,7 @@ resource "hcloud_server" "controller" {
   user_data = local.userdata
 
   public_net {
-    ipv4_enabled = false
+    ipv4_enabled = true
     ipv6_enabled = true
   }
   firewall_ids = [hcloud_firewall.default.id]

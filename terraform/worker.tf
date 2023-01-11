@@ -27,7 +27,7 @@ resource "hcloud_server" "worker" {
   placement_group_id = hcloud_placement_group.workers.id
 
   public_net {
-    ipv4_enabled = false
+    ipv4_enabled = true
     ipv6_enabled = true
   }
   firewall_ids = [hcloud_firewall.default.id]

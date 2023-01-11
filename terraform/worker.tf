@@ -16,7 +16,7 @@ resource "hcloud_placement_group" "workers" {
 
 resource "hcloud_server" "worker" {
   count       = var.worker_count
-  name        = "worker-${resource.random_string.worker[count.index].result}.${var.domain}"
+  name        = "worker-${resource.random_string.worker[count.index].result}"
   server_type = "cx21"
   location    = "fsn1"
   image       = "rocky-9"

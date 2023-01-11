@@ -6,11 +6,6 @@ variable "default_labels" {
   }
 }
 
-variable "domain" {
-  type    = string
-  default = "mhnet.dev"
-}
-
 variable "ssh_port" {
   type = number
 }

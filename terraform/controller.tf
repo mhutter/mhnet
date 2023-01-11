@@ -8,7 +8,7 @@ resource "random_string" "controller" {
 }
 
 resource "hcloud_server" "controller" {
-  name        = "controller-${resource.random_string.controller.result}.${var.domain}"
+  name        = "controller-${resource.random_string.controller.result}"
   server_type = "cx11"
   location    = "fsn1"
   image       = "rocky-9"

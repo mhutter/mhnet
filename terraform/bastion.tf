@@ -1,5 +1,14 @@
+resource "random_string" "bastion" {
+  length = 4
+
+  numeric = true
+  lower   = true
+  upper   = false
+  special = false
+}
+
 resource "hcloud_server" "bastion" {
-  name        = "bastion.${var.domain}"
+  name        = "bastion-${resource.random_string.bastion.result}"
   server_type = "cx11"
   location    = "fsn1"
   image       = "rocky-9"

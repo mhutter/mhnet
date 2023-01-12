@@ -1,0 +1,6 @@
+commonAnnotations:
+  source: "https://github.com/mhutter/mhnet"
+
+bases:
+  - "./apps/cert-manager"
+  - "./apps/sealed-secrets"

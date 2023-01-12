@@ -47,12 +47,8 @@ hcloud server list -o json | \
                   repositories: [{
                     name: "cilium",
                     url: "https://helm.cilium.io/",
-                  }, {
-                    name: "ingress-nginx",
-                    url: "https://kubernetes.github.io/ingress-nginx",
                   }],
-                  charts: [
-                  {
+                  charts: [{
                     name: "cilium",
                     chartname: "cilium/cilium",
                     namespace: "kube-system",
@@ -61,24 +57,6 @@ hcloud server list -o json | \
                       k8sServiceHost: $api_host,
                       k8sServicePort: 6443,
                     } | @json),
-                  },
-                  {
-                    name: "ingress-nginx",
-                    chartname: "ingress-nginx/ingress-nginx",
-                    namespace: "ingress-nginx",
-                    values: ({
-                      controller: {
-                        kind: "DaemonSet",
-                        service: {
-                          type: "NodePort",
-                          externalTrafficPolicy: "Local",
-                          nodePorts: {
-                            http: "30080",
-                            https: "30443",
-                          },
-                        },
-                      },
-                    } | @json)
                   }],
                 },
               },

@@ -35,9 +35,10 @@ Deploy the cluster & recreate the kubeconfig
     make kubeconfig
 
 
-### Kustomize/K8s manifests
+### K8s manifests
 
-    kubectl apply -k ./kustomize/base
+    kubectl apply -k .
+    helmfile apply
 
 
 ## Setup

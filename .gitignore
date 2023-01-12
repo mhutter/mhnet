@@ -1,1 +1,7 @@
 *.decrypted.yml
+.terraform/
+*.tfplan
+*.tfstate*
+k0sctl.yaml
+kubeconfig
+.ansible/

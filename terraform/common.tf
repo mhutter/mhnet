@@ -41,42 +41,53 @@ resource "hcloud_firewall" "default" {
   labels = var.default_labels
 }
 
-# resource "hcloud_load_balancer" "ingress" {
-#   name               = "ingress"
-#   load_balancer_type = "lb11"
-#   location           = "fsn1"
-#   algorithm {
-#     type = "round_robin"
-#   }
+resource "hcloud_load_balancer" "ingress" {
+  name               = "ingress"
+  load_balancer_type = "lb11"
+  location           = "fsn1"
+  algorithm {
+    type = "round_robin"
+  }
 
-#   labels = var.default_labels
-# }
+  labels = var.default_labels
+}
 
-# resource "hcloud_load_balancer_network" "ingress" {
-#   load_balancer_id = hcloud_load_balancer.ingress.id
-#   subnet_id        = hcloud_network_subnet.internal.id
+resource "hcloud_load_balancer_network" "ingress" {
+  load_balancer_id = hcloud_load_balancer.ingress.id
+  subnet_id        = hcloud_network_subnet.internal.id
+}
 
-# }
+resource "hcloud_load_balancer_service" "ingress-80" {
+  load_balancer_id = hcloud_load_balancer.ingress.id
+  protocol         = "http"
+  destination_port = 30080
 
-# resource "hcloud_load_balancer_service" "ingress-80" {
-#   load_balancer_id = hcloud_load_balancer.ingress.id
-#   protocol         = "http"
-#   proxyprotocol    = true
-# }
-# resource "hcloud_load_balancer_service" "ingress-443" {
-#   load_balancer_id = hcloud_load_balancer.ingress.id
-#   protocol         = "tcp"
-#   listen_port      = 443
-#   destination_port = 443
-#   proxyprotocol    = true
-# }
+  health_check {
+    protocol = "http"
+    port     = 30080
+    http {
+      path         = "/healthz"
+      status_codes = ["200"]
+    }
+    interval = 15
+    timeout  = 10
+    retries  = 3
+  }
+}
 
-# resource "hcloud_load_balancer_target" "name" {
-#   load_balancer_id = hcloud_load_balancer.ingress.id
-#   type             = "label_selector"
-#   label_selector   = "mhnet.dev/role=worker"
-#   use_private_ip   = true
-#   depends_on = [
-#     hcloud_load_balancer_network.ingress
-#   ]
-# }
+resource "hcloud_load_balancer_service" "ingress-443" {
+  load_balancer_id = hcloud_load_balancer.ingress.id
+  protocol         = "tcp"
+  listen_port      = 443
+  destination_port = 30443
+}
+
+resource "hcloud_load_balancer_target" "workers" {
+  load_balancer_id = hcloud_load_balancer.ingress.id
+  type             = "label_selector"
+  label_selector   = "role=worker"
+  use_private_ip   = true
+  depends_on = [
+    hcloud_load_balancer_network.ingress
+  ]
+}

@@ -3,5 +3,4 @@ commonAnnotations:
 
 bases:
   - "../../kustomize/apps/cert-manager"
-  - "../../kustomize/apps/ingress-nginx"
   - "../../kustomize/apps/sealed-secrets"

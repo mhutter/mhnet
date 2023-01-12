@@ -3,4 +3,5 @@ commonAnnotations:
 
 bases:
   - "./apps/cert-manager"
+  - "./apps/hcloud-csi"
   - "./apps/sealed-secrets"

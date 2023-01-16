@@ -17,3 +17,10 @@
     section: main
     option: fastestmirror
     value: "1"
+
+- name: Remove 4th DNS server
+  community.general.nmcli:
+    conn_name: System eth0
+    type: ethernet
+    state: present
+    dns6: ['2a01:4ff:ff00::add:2']

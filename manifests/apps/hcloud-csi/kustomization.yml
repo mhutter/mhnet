@@ -6,3 +6,33 @@ commonLabels:
 resources:
   - ./token.json
   - https://raw.githubusercontent.com/hetznercloud/csi-driver/v2.1.0/deploy/kubernetes/hcloud-csi.yml
+
+patchesStrategicMerge:
+  - |-
+    apiVersion: apps/v1
+    kind: DaemonSet
+    metadata:
+      name: hcloud-csi-node
+      namespace: kube-system
+    spec:
+      template:
+        spec:
+          containers:
+            - name: csi-node-driver-registrar
+              args:
+                - --kubelet-registration-path=/var/lib/k0s/kubelet/plugins/csi.hetzner.cloud/socket
+            - name: hcloud-csi-driver
+              volumeMounts:
+                - name: kubelet-dir
+                  mountPath: /var/lib/k0s/kubelet
+                  mountPropagation: Bidirectional
+          volumes:
+            - name: kubelet-dir
+              hostPath:
+                path: /var/lib/k0s/kubelet
+            - name: plugin-dir
+              hostPath:
+                path: /var/lib/k0s/kubelet/plugins/csi.hetzner.cloud/
+            - name: registration-dir
+              hostPath:
+                path: /var/lib/k0s/kubelet/plugins_registry/

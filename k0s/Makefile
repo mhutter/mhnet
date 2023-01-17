@@ -1,6 +1,15 @@
+K0S_VERSION := "1.25.4+k0s.0"
+
 .PHONY: k0sctl.yaml
 k0sctl.yaml:
-	./generate-config.sh > "$@"
+	hcloud server list -o json \
+		| jsonnet \
+			--tla-str sshUser="$(SSH_USER)" \
+			--tla-code sshPort="$(SSH_PORT)" \
+			--tla-str k0sVersion="$(K0S_VERSION)" \
+			-- k0s.jsonnet \
+		| yq --output-format yaml --prettyPrint \
+		> "$@"
 
 .PHONY: kubeconfig
 kubeconfig:

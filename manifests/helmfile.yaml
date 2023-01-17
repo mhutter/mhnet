@@ -2,6 +2,8 @@
 repositories:
   - name: ingress-nginx
     url: https://kubernetes.github.io/ingress-nginx
+  - name: prometheus-community
+    url: https://prometheus-community.github.io/helm-charts
 
 releases:
   - name: ingress-nginx
@@ -18,3 +20,39 @@ releases:
             nodePorts:
               http: 30080
               https: 30443
+
+  - name: kube-prometheus-stack
+    namespace: monitoring
+    createNamespace: true
+    chart: prometheus-community/kube-prometheus-stack
+    version: "44.2.1"
+    # https://github.com/prometheus-community/helm-charts/tree/main/charts/kube-prometheus-stack
+    values:
+      - kubeProxy:
+          # we run Cilium in kube-proxy-less mode so no kubeProxy
+          enabled: false
+        # kubeControllerManager and kubeScheduler are collected by K0s' metrics
+        # collector, which pushes the metrics into a pushgateway.
+        kubeControllerManager:
+          service:
+            enabled: false
+          serviceMonitor:
+            enabled: false
+        kubeScheduler:
+          service:
+            enabled: false
+          serviceMonitor:
+            enabled: false
+        prometheus:
+          additionalServiceMonitors:
+            # scrape mentioned K0s pushgateway
+            - name: k0s-observability
+              selector:
+                matchLabels:
+                  app: k0s-observability
+              namespaceSelector:
+                matchNames:
+                  - k0s-system
+              endpoints:
+                - port: http
+                  scheme: http

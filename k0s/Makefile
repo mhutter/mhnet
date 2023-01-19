@@ -18,7 +18,7 @@ kubeconfig:
 
 .PHONY: apply
 apply:
-	k0sctl apply
+	k0sctl apply --kubeconfig-out kubeconfig
 
 .PHONY: reset
 reset:

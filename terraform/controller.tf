@@ -25,6 +25,7 @@ resource "hcloud_server" "controller" {
   firewall_ids = [hcloud_firewall.default.id]
   network {
     network_id = hcloud_network.internal.id
+    ip         = cidrhost(var.ip_range, var.ip_offsets.controller + count.index)
   }
 
   labels = merge(var.default_labels, {

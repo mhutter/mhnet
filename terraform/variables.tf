@@ -28,3 +28,18 @@ variable "worker_count" {
   type    = number
   default = 3
 }
+
+variable "ip_range" {
+  type    = string
+  default = "10.42.0.0/24"
+}
+
+variable "ip_offsets" {
+  type = map(number)
+  default = {
+    "lb"         = 2
+    "bastion"    = 10
+    "worker"     = 100
+    "controller" = 200
+  }
+}

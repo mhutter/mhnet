@@ -23,6 +23,7 @@ resource "hcloud_server" "bastion" {
   firewall_ids = [hcloud_firewall.default.id]
   network {
     network_id = hcloud_network.internal.id
+    ip         = cidrhost(var.ip_range, var.ip_offsets.bastion)
   }
 
   labels = merge(var.default_labels, {

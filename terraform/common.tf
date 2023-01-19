@@ -14,7 +14,7 @@ resource "hcloud_ssh_key" "mhnet" {
 
 resource "hcloud_network" "internal" {
   name     = "internal"
-  ip_range = "10.42.0.0/16"
+  ip_range = var.ip_range
 
   labels = var.default_labels
 }
@@ -22,7 +22,7 @@ resource "hcloud_network" "internal" {
 resource "hcloud_network_subnet" "internal" {
   network_id   = hcloud_network.internal.id
   type         = "cloud"
-  ip_range     = "10.42.0.0/24"
+  ip_range     = var.ip_range
   network_zone = "eu-central"
 }
 
@@ -55,6 +55,7 @@ resource "hcloud_load_balancer" "ingress" {
 resource "hcloud_load_balancer_network" "ingress" {
   load_balancer_id = hcloud_load_balancer.ingress.id
   subnet_id        = hcloud_network_subnet.internal.id
+  ip               = cidrhost(var.ip_range, var.ip_offsets.lb)
 }
 
 resource "hcloud_load_balancer_service" "ingress-80" {

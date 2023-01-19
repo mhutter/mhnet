@@ -33,6 +33,7 @@ resource "hcloud_server" "worker" {
   firewall_ids = [hcloud_firewall.default.id]
   network {
     network_id = hcloud_network.internal.id
+    ip         = cidrhost(var.ip_range, var.ip_offsets.worker + count.index)
   }
 
   labels = merge(var.default_labels, {

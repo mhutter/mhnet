@@ -50,7 +50,7 @@ local k0sctlConfig(apiHost, k0sVersion, hosts) =
 local renderHost(sshPort, sshUser) = function(s)
   local isController = s.labels.role == 'controller';
   {
-    role: if isController then 'controller+worker' else 'worker',
+    role: s.labels.role,
     [if isController then 'installFlags']: ['--enable-metrics-scraper'],
     privateInterface: 'ens10',
     privateAddress: s.private_net[0].ip,
@@ -73,7 +73,7 @@ local main(sshPort, sshUser, k0sVersion) =
   local servers = import '/dev/stdin';
   local hosts = k0sHosts(sshPort, sshUser, servers);
   local apiHost = std.filterMap(
-    function(s) s.role == 'controller+worker',
+    function(s) s.role == 'controller',
     function(h) h.privateAddress,
     hosts
   )[0];

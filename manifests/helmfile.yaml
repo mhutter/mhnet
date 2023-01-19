@@ -44,6 +44,14 @@ releases:
           serviceMonitor:
             enabled: false
         prometheus:
+          prometheusSpec:
+            storageSpec:
+              volumeClaimTemplate:
+                spec:
+                  accessModes: ["ReadWriteOnce"]
+                  resources:
+                    requests:
+                      storage: 10Gi
           additionalServiceMonitors:
             # scrape mentioned K0s pushgateway
             - name: k0s-observability

@@ -19,6 +19,11 @@ variable "ssh_key" {
   default = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAILRFlkyW0MXxYjA1HUzJ18nlTLtXOHKV0rVJD/46v7Sb tera2023"
 }
 
+variable "controller_count" {
+  type    = number
+  default = 1
+}
+
 variable "worker_count" {
   type    = number
   default = 3

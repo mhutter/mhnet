@@ -1,4 +1,5 @@
 resource "random_string" "controller" {
+  count  = var.controller_count
   length = 4
 
   numeric = true
@@ -8,7 +9,8 @@ resource "random_string" "controller" {
 }
 
 resource "hcloud_server" "controller" {
-  name        = "controller-${resource.random_string.controller.result}"
+  count       = var.controller_count
+  name        = "controller-${resource.random_string.controller[count.index].result}"
   server_type = "cx11"
   location    = "fsn1"
   image       = "rocky-9"
@@ -35,7 +37,7 @@ resource "hcloud_server" "controller" {
 
   lifecycle {
     replace_triggered_by = [
-      random_string.controller.result
+      random_string.controller[count.index].result
     ]
   }
 }

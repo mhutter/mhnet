@@ -7,7 +7,7 @@ k0sctl.yaml:
 			--tla-str sshUser="$(SSH_USER)" \
 			--tla-code sshPort="$(SSH_PORT)" \
 			--tla-str k0sVersion="$(K0S_VERSION)" \
-			-- k0s.jsonnet \
+			-- k0sctl.jsonnet \
 		| yq --output-format yaml --prettyPrint \
 		> "$@"
 

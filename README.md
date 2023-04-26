@@ -22,7 +22,7 @@ Apply the plan:
 Just run `ansible` (or `ansible-playbook playbook.yml`) from the [`ansible/`](ansible/) directory.
 
 
-### K0s
+### K0s cluster
 
 Re-generate the `k0sctl.yaml` config file:
 
@@ -34,6 +34,20 @@ Deploy the cluster & recreate the kubeconfig
     make apply
     make kubeconfig
 
+
+### K0s single-node (ares)
+
+Install & start K0s
+
+    k0s install controller --single
+    k0s start
+
+Create kubeconfig & Clusterrolebinding
+
+```sh
+sudo k0s kubeconfig create "$USER" > kubeconfig
+sudo k0s kubectl create clusterrolebinding "${USER}-admin" --clusterrole=cluster-admin --user="$USER"
+```
 
 ### K8s manifests
 

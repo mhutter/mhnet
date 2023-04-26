@@ -1,0 +1,13 @@
+---
+apiVersion: k0s.k0sproject.io/v1beta1
+kind: ClusterConfig
+metadata:
+  creationTimestamp: null
+  name: k0s
+spec:
+  api:
+    address: "{{ api_address }}"
+    sans:
+{% for san in api_sans %}
+      - '{{san}}'
+{% endfor %}

@@ -7,3 +7,8 @@
   tags: [bastion]
   roles:
     - bastion
+
+- hosts: ares
+  tags: [k0s]
+  roles:
+    - k0s

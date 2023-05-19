@@ -26,6 +26,12 @@ resource "hcloud_network_subnet" "internal" {
   network_zone = "eu-central"
 }
 
+resource "hcloud_network_route" "nat_gateway" {
+  network_id  = hcloud_network.internal.id
+  destination = "0.0.0.0/0"
+  gateway     = cidrhost(var.ip_range, var.ip_offsets.bastion)
+}
+
 resource "hcloud_firewall" "default" {
   name = "default"
 

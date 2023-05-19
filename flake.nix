@@ -12,7 +12,7 @@
       {
         devShells.default = pkgs.mkShell
           {
-            packages = with pkgs; [ packer terraform ];
+            packages = with pkgs; [ hcloud packer terraform ];
           };
       }
     );

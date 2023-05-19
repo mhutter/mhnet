@@ -17,6 +17,7 @@
     section: main
     option: fastestmirror
     value: "1"
+  when: ansible_facts['os_family'] == "RedHat"
 
 - name: Remove 4th DNS server
   community.general.nmcli:
@@ -24,3 +25,4 @@
     type: ethernet
     state: present
     dns6: ["2a01:4ff:ff00::add:2"]
+  when: ansible_facts['os_family'] == "RedHat"

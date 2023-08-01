@@ -25,7 +25,7 @@ releases:
     namespace: monitoring
     createNamespace: true
     chart: prometheus-community/kube-prometheus-stack
-    version: "48.2.2"
+    version: "48.2.3"
     # https://github.com/prometheus-community/helm-charts/tree/main/charts/kube-prometheus-stack
     values:
       - kubeProxy:

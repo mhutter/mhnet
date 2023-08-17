@@ -6,4 +6,4 @@ commonLabels:
   app.kubernetes.io/name: sealed-secrets
 resources:
   - namespace.yaml
-  - https://github.com/bitnami-labs/sealed-secrets/releases/download/v0.23.0/controller.yaml
+  - https://github.com/bitnami-labs/sealed-secrets/releases/download/v0.23.1/controller.yaml

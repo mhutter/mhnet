@@ -68,5 +68,30 @@
   ansible.builtin.apt:
     name:
       - apt-dater-host
+      - unattended-upgrades
     state: present
     update_cache: true
+
+# Pinned so the unattended-upgrades reboot window below is unambiguous
+# year-round, independent of DST.
+- name: Set timezone to UTC
+  ansible.builtin.timezone:
+    name: Etc/UTC
+
+- name: Enable periodic apt updates and unattended upgrades
+  ansible.builtin.copy:
+    dest: /etc/apt/apt.conf.d/20auto-upgrades
+    content: |
+      APT::Periodic::Update-Package-Lists "1";
+      APT::Periodic::Unattended-Upgrade "1";
+    owner: root
+    group: root
+    mode: "0644"
+
+- name: Configure unattended-upgrades
+  ansible.builtin.template:
+    src: 51-mhnet-unattended-upgrades
+    dest: /etc/apt/apt.conf.d/51-mhnet-unattended-upgrades
+    owner: root
+    group: root
+    mode: "0644"

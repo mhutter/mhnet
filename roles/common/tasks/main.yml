@@ -4,6 +4,7 @@
     name: "{{ admin_user }}"
     uid: "{{ admin_uid }}"
     shell: /bin/bash
+  tags: bootstrap
 
 - name: Allow sudo
   community.general.sudoers:
@@ -11,11 +12,13 @@
     user: "{{ admin_user }}"
     commands: ALL
     nopassword: true
+  tags: bootstrap
 
 - name: Set SSH public keys
   ansible.posix.authorized_key:
     user: "{{ admin_user }}"
     key: "{{ lookup('file', lookup('env','HOME') + '/.ssh/id_ed25519.pub') }}"
+  tags: bootstrap
 
 - name: Remove default users
   ansible.builtin.user:
@@ -26,7 +29,7 @@
     - ubuntu
     - ec2-user
 
-# This must be the LAST task in this role, because it reconfigures and restarts
+# This must be the LAST "bootstrap" task, because it reconfigures and restarts
 # the SSH server.
 - name: Configure SSH server
   ansible.builtin.template:
@@ -40,3 +43,30 @@
   notify:
     - restart ssh.service
     - restart ssh.socket
+  tags: bootstrap
+
+- name: Disable apt recommends and suggests
+  ansible.builtin.copy:
+    dest: /etc/apt/apt.conf.d/99no-recommends
+    content: |
+      APT::Install-Recommends "false";
+      APT::Install-Suggests "false";
+    owner: root
+    group: root
+    mode: "0644"
+
+- name: Remove unused packages
+  ansible.builtin.apt:
+    name:
+      - manpages
+      - man-db
+    state: absent
+    autoremove: true
+    purge: true
+
+- name: Install required packages
+  ansible.builtin.apt:
+    name:
+      - apt-dater-host
+    state: present
+    update_cache: true

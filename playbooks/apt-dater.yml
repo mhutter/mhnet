@@ -1,0 +1,39 @@
+---
+# Generates a local apt-dater hosts.xml from the inventory, so apt-dater on
+# this machine can reach every managed host without maintaining a second,
+# separate list of hosts/ports/users.
+- hosts: localhost
+  connection: local
+  become: false
+  gather_facts: false
+  tasks:
+    - name: Resolve apt-dater's hosts.dtd path
+      ansible.builtin.shell: |
+        set -o pipefail
+        realpath "$(dirname "$(command -v apt-dater)")/../share/xml/schema/apt-dater/hosts.dtd"
+      register: apt_dater_hosts_dtd
+      changed_when: false
+      check_mode: false
+
+    - name: Ensure apt-dater config directory exists
+      ansible.builtin.file:
+        path: "{{ lookup('env', 'HOME') }}/.config/apt-dater"
+        state: directory
+        mode: "0700"
+
+    - name: Write apt-dater hosts.xml
+      ansible.builtin.copy:
+        content: |
+          <?xml version="1.0" encoding="UTF-8"?>
+          <!DOCTYPE hosts SYSTEM "file://{{ hosts_dtd_path }}">
+          <hosts xmlns:xi="http://www.w3.org/2001/XInclude">
+            <group name="mhnet">
+          {% for host in groups['all'] %}
+              <host name="{{ host }}" ssh-host="{{ hostvars[host].ansible_host | default(host) }}" ssh-port="{{ hostvars[host].ansible_port | default(22) }}" ssh-user="{{ hostvars[host].ansible_user | default('root') }}"/>
+          {% endfor %}
+            </group>
+          </hosts>
+        dest: "{{ lookup('env', 'HOME') }}/.config/apt-dater/hosts.xml"
+        mode: "0600"
+      vars:
+        hosts_dtd_path: "{{ apt_dater_hosts_dtd.stdout }}"

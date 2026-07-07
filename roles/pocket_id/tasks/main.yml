@@ -1,0 +1,122 @@
+---
+- name: Install podman
+  ansible.builtin.apt:
+    name:
+      - podman
+      - passt # network namespace support for podman
+    state: present
+    update_cache: true
+
+- name: Create pocket-id system group
+  ansible.builtin.group:
+    name: pocket-id
+    system: true
+  register: pocket_id_group
+
+- name: Create pocket-id system user
+  ansible.builtin.user:
+    name: pocket-id
+    group: pocket-id
+    system: true
+    home: /var/lib/pocket-id
+    create_home: true
+    shell: /usr/sbin/nologin
+  register: pocket_id_user
+
+# Rootless podman needs subordinate UID/GID ranges to remap container users;
+# `useradd --system` does not allocate these automatically like a normal
+# `useradd` would.
+- name: Allow subordinate UIDs/GIDs for rootless podman
+  ansible.builtin.lineinfile:
+    path: "{{ item }}"
+    line: "pocket-id:{{ pocket_id_subid_start }}:{{ pocket_id_subid_count }}"
+    search_string: "pocket-id:"
+    create: true
+    owner: root
+    group: root
+    mode: "0644"
+  loop:
+    - /etc/subuid
+    - /etc/subgid
+
+# Scoped narrowly to pocket-id (not a general runas-ALL grant) so Ansible can
+# manage pocket-id's own systemd --user instance via become_user.
+- name: Allow admin to run commands as pocket-id
+  community.general.sudoers:
+    name: pocket-id-runas
+    user: "{{ admin_user }}"
+    runas: pocket-id
+    commands: ALL
+    nopassword: true
+
+- name: Enable lingering for pocket-id (keeps its systemd --user instance running without a login session)
+  ansible.builtin.command: loginctl enable-linger pocket-id
+  args:
+    creates: /var/lib/systemd/linger/pocket-id
+
+- name: Ensure pocket-id's systemd --user instance is running
+  ansible.builtin.systemd_service:
+    name: "user@{{ pocket_id_user.uid }}.service"
+    state: started
+
+- name: Create pocket-id data directory
+  ansible.builtin.file:
+    path: /var/lib/pocket-id/data
+    state: directory
+    owner: pocket-id
+    group: pocket-id
+    mode: "0700"
+
+- name: Configure pocket-id environment
+  ansible.builtin.template:
+    src: pocket-id.env.j2
+    dest: /var/lib/pocket-id/pocket-id.env
+    owner: pocket-id
+    group: pocket-id
+    mode: "0600"
+  notify: restart pocket-id
+
+- name: Create administrator-managed Quadlet directory for pocket-id's user
+  ansible.builtin.file:
+    path: "/etc/containers/systemd/users/{{ pocket_id_user.uid }}"
+    state: directory
+    owner: root
+    group: root
+    mode: "0755"
+
+- name: Install pocket-id Quadlet unit
+  ansible.builtin.template:
+    src: pocket-id.container.j2
+    dest: "/etc/containers/systemd/users/{{ pocket_id_user.uid }}/pocket-id.container"
+    owner: root
+    group: root
+    mode: "0644"
+  notify: restart pocket-id
+
+- name: Enable podman auto-update timer for pocket-id
+  ansible.builtin.systemd_service:
+    name: podman-auto-update.timer
+    scope: user
+    daemon_reload: true
+    enabled: true
+    state: started
+  become: true
+  become_user: pocket-id
+  environment:
+    XDG_RUNTIME_DIR: "/run/user/{{ pocket_id_user.uid }}"
+
+- name: Ensure pocket-id service is enabled and started
+  ansible.builtin.systemd_service:
+    name: pocket-id.service
+    scope: user
+    daemon_reload: true
+    enabled: true
+    state: started
+  become: true
+  become_user: pocket-id
+  environment:
+    XDG_RUNTIME_DIR: "/run/user/{{ pocket_id_user.uid }}"
+#
+# TODO: Backup
+# TODO: cloudflare tunnel
+#

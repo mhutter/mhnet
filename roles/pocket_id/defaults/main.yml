@@ -1,0 +1,18 @@
+---
+# NOTE: GHCR.io does not support IPv6, hence we use the Docker Hub mirror.
+# pocket_id_image: ghcr.io/pocket-id/pocket-id:v2-distroless
+
+# NOTE: The distroless version seems not to work with rootless podman.
+pocket_id_image: docker.io/pocketid/pocket-id:v2
+
+pocket_id_port: 1411
+
+# Must not overlap any other user's range in /etc/subuid / /etc/subgid
+# (the admin user already occupies 100000:65536).
+pocket_id_subid_start: 165536
+pocket_id_subid_count: 65536
+
+pocket_id_trust_proxy: true
+# Stubs -- replace before relying on this deployment.
+pocket_id_app_url: "https://pocket-id.CHANGEME.invalid"
+pocket_id_encryption_key: "CHANGEME-generate-with-openssl-rand-base64-32"

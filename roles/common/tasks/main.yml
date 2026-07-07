@@ -1,0 +1,42 @@
+---
+- name: Configure user
+  ansible.builtin.user:
+    name: "{{ admin_user }}"
+    uid: "{{ admin_uid }}"
+    shell: /bin/bash
+
+- name: Allow sudo
+  community.general.sudoers:
+    name: admin-allow-all
+    user: "{{ admin_user }}"
+    commands: ALL
+    nopassword: true
+
+- name: Set SSH public keys
+  ansible.posix.authorized_key:
+    user: "{{ admin_user }}"
+    key: "{{ lookup('file', lookup('env','HOME') + '/.ssh/id_ed25519.pub') }}"
+
+- name: Remove default users
+  ansible.builtin.user:
+    name: "{{ item }}"
+    state: absent
+    remove: true
+  loop:
+    - ubuntu
+    - ec2-user
+
+# This must be the LAST task in this role, because it reconfigures and restarts
+# the SSH server.
+- name: Configure SSH server
+  ansible.builtin.template:
+    src: sshd_config
+    dest: /etc/ssh/sshd_config.d/00-mhnet.conf
+    owner: root
+    group: root
+    mode: "0644"
+    backup: true
+    validate: /usr/sbin/sshd -t -f %s
+  notify:
+    - restart ssh.service
+    - restart ssh.socket

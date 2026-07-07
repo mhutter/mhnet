@@ -1,0 +1,14 @@
+# {{ ansible_managed }}
+Protocol 2
+PermitRootLogin no
+PasswordAuthentication no
+AuthenticationMethods publickey
+AllowUsers {{ admin_user }}
+Port {{ ssh_port }}
+
+Ciphers aes256-ctr,aes192-ctr,aes128-ctr
+
+X11Forwarding no
+IgnoreRhosts yes
+UseDNS no
+MaxAuthTries 3

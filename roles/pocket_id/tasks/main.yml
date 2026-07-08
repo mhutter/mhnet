@@ -40,16 +40,6 @@
     - /etc/subuid
     - /etc/subgid
 
-# Scoped narrowly to pocket-id (not a general runas-ALL grant) so Ansible can
-# manage pocket-id's own systemd --user instance via become_user.
-- name: Allow admin to run commands as pocket-id
-  community.general.sudoers:
-    name: pocket-id-runas
-    user: "{{ admin_user }}"
-    runas: pocket-id
-    commands: ALL
-    nopassword: true
-
 - name: Enable lingering for pocket-id (keeps its systemd --user instance running without a login session)
   ansible.builtin.command: loginctl enable-linger pocket-id
   args:

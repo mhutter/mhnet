@@ -6,10 +6,13 @@
     shell: /bin/bash
   tags: bootstrap
 
+# runas ALL matters: without it the rule only permits running as root, and
+# Ansible's become_user for service accounts (e.g. postgres) fails.
 - name: Allow sudo
   community.general.sudoers:
     name: admin-allow-all
     user: "{{ admin_user }}"
+    runas: ALL
     commands: ALL
     nopassword: true
   tags: bootstrap

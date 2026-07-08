@@ -58,8 +58,9 @@
 - name: Remove unused packages
   ansible.builtin.apt:
     name:
-      - manpages
       - man-db
+      - manpages
+      - snapd
     state: absent
     autoremove: true
     purge: true

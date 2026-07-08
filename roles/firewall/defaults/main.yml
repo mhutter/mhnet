@@ -1,0 +1,4 @@
+---
+firewall_allow_tcp_ports:
+  - "{{ ssh_port }}"
+firewall_allow_udp_ports: []

@@ -1,0 +1,39 @@
+#!/usr/sbin/nft -f
+# {{ ansible_managed }}
+
+# Full-state ruleset: `flush ruleset` makes every load/reload an atomic
+# replacement, so this file is the single source of truth.
+flush ruleset
+
+table inet filter {
+    chain input {
+        type filter hook input priority filter; policy drop;
+
+        iif "lo" accept
+
+        # Stateful accept: covers return traffic of all outbound connections,
+        # including cloudflared's QUIC (UDP) flows to the Cloudflare edge.
+        ct state established,related accept
+        ct state invalid drop
+
+        # ICMP for PMTUD; ICMPv6 also carries neighbor discovery, without
+        # which IPv6 breaks entirely.
+        ip protocol icmp accept
+        meta l4proto ipv6-icmp accept
+
+        # DHCPv6 client: server replies are not conntrack-established.
+        ip6 daddr fe80::/10 udp dport 546 accept
+{% if firewall_allow_tcp_ports %}
+
+        tcp dport { {{ firewall_allow_tcp_ports | join(", ") }} } accept
+{% endif %}
+{% if firewall_allow_udp_ports %}
+
+        udp dport { {{ firewall_allow_udp_ports | join(", ") }} } accept
+{% endif %}
+    }
+
+    chain forward {
+        type filter hook forward priority filter; policy drop;
+    }
+}

@@ -4,6 +4,8 @@
   roles:
     - role: common
       tags: common
+    - role: firewall
+      tags: firewall
     - role: backup
       tags: backup
 

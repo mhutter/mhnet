@@ -1,0 +1,25 @@
+---
+# Host firewall via plain nftables: the whole ruleset lives in one templated
+# file that nftables.service (re)loads atomically. Being stateful, it accepts
+# return traffic of outbound connections, so cloudflared needs no open ports.
+
+- name: Install nftables
+  ansible.builtin.apt:
+    name: nftables
+    state: present
+
+- name: Configure nftables ruleset
+  ansible.builtin.template:
+    src: nftables.conf.j2
+    dest: /etc/nftables.conf
+    owner: root
+    group: root
+    mode: "0755"
+    validate: /usr/sbin/nft -c -f %s
+  notify: reload nftables
+
+- name: Enable and start nftables
+  ansible.builtin.systemd_service:
+    name: nftables.service
+    enabled: true
+    state: started

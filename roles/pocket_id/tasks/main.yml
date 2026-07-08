@@ -1,9 +1,19 @@
 ---
-- name: Install podman
+- name: Configure Cloudflared Repository
+  ansible.builtin.deb822_repository:
+    name: cloudflared
+    uris: https://pkg.cloudflare.com/cloudflared
+    types: deb
+    suites: any
+    components: main
+    signed_by: https://pkg.cloudflare.com/cloudflare-main.gpg
+
+- name: Install required software
   ansible.builtin.apt:
     name:
       - podman
       - passt # network namespace support for podman
+      - cloudflared
     state: present
     update_cache: true
 
@@ -120,3 +130,4 @@
 # TODO: Backup
 # TODO: cloudflare tunnel
 #
+

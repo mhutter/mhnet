@@ -1,6 +1,0 @@
----
-- hosts: pocket_id
-  become: true
-  roles:
-    - role: pocket_id
-      tags: pocket_id

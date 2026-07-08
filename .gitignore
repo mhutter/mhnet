@@ -1,2 +1,4 @@
 .ansible/
 *.tgz
+out/
+.vaultpass

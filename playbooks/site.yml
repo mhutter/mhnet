@@ -18,5 +18,7 @@
 - hosts: miniflux
   become: true
   roles:
+    - role: dns64
+      tags: dns64
     - role: miniflux
       tags: miniflux

@@ -1,0 +1,9 @@
+---
+# Public DNS64/NAT64 service by Kasper Dupont (https://nat64.net), best-effort.
+# Gives IPv6-only hosts access to IPv4-only destinations via synthesized AAAA
+# records; HTTPS stays end-to-end encrypted, plaintext traffic transits their
+# gateways.
+dns64_resolvers:
+  - 2a00:1098:2b::1
+  - 2a01:4f8:c2c:123f::1
+  - 2a01:4f9:c010:3f02::1

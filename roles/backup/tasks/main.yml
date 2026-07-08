@@ -1,0 +1,105 @@
+---
+# A missing credential should fail the host loudly, not skip it silently --
+# a host that quietly stops backing up is worse than a red play.
+- name: Ensure backup credentials are configured
+  ansible.builtin.assert:
+    that:
+      - backup_b2_account_id is defined
+      - backup_b2_account_key is defined
+      - backup_restic_password is defined
+    fail_msg: >-
+      Missing backup credentials for {{ inventory_hostname }}. Create a B2 key
+      with scripts/b2-create-restic-key.sh and add backup_b2_account_id,
+      backup_b2_account_key and backup_restic_password (openssl rand -base64
+      32) to the vaulted inventory.
+
+- name: Install restic
+  ansible.builtin.apt:
+    name: restic
+    state: present
+
+- name: Create backup configuration directories
+  ansible.builtin.file:
+    path: "{{ item }}"
+    state: directory
+    owner: root
+    group: root
+    mode: "0755"
+  loop:
+    - /etc/backup
+    - /etc/backup/paths.d
+    - /etc/backup/exclude.d
+    - /etc/backup/pre.d
+
+- name: Create restic cache directory
+  ansible.builtin.file:
+    path: /var/cache/restic
+    state: directory
+    owner: root
+    group: root
+    mode: "0700"
+
+# /etc also captures state that Ansible does not manage (e.g. the manually
+# created cloudflared unit with its tunnel token) and the SSH host keys.
+- name: Register system backup paths
+  ansible.builtin.copy:
+    content: |
+      /etc
+      /home
+      /root
+    dest: /etc/backup/paths.d/10-system.txt
+    owner: root
+    group: root
+    mode: "0644"
+
+- name: Configure backup environment
+  ansible.builtin.template:
+    src: backup.env.j2
+    dest: /etc/backup/backup.env
+    owner: root
+    group: root
+    mode: "0600"
+
+- name: Install backup wrapper script
+  ansible.builtin.copy:
+    src: backup-run
+    dest: /usr/local/sbin/backup-run
+    owner: root
+    group: root
+    mode: "0755"
+
+- name: Install backup systemd units
+  ansible.builtin.template:
+    src: "{{ item }}.j2"
+    dest: "/etc/systemd/system/{{ item }}"
+    owner: root
+    group: root
+    mode: "0644"
+  loop:
+    - backup.service
+    - backup.timer
+    - backup-prune.service
+    - backup-prune.timer
+  notify: systemd daemon-reload
+
+- name: Reload systemd before enabling timers
+  ansible.builtin.meta: flush_handlers
+
+- name: Check whether the restic repository exists
+  ansible.builtin.command: /usr/local/sbin/backup-run cat config
+  register: backup_repo_check
+  failed_when: false
+  changed_when: false
+
+- name: Initialize restic repository
+  ansible.builtin.command: /usr/local/sbin/backup-run init
+  when: backup_repo_check.rc != 0
+
+- name: Enable backup timers
+  ansible.builtin.systemd_service:
+    name: "{{ item }}"
+    enabled: true
+    state: started
+  loop:
+    - backup.timer
+    - backup-prune.timer

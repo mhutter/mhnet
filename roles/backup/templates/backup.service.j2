@@ -1,0 +1,19 @@
+# Managed by Ansible (roles/backup).
+
+[Unit]
+Description=restic backup
+Wants=network-online.target
+After=network-online.target
+
+[Service]
+Type=oneshot
+ExecStart=/usr/local/sbin/backup-run backup
+CacheDirectory=restic
+CacheDirectoryMode=0700
+Nice=10
+IOSchedulingClass=idle
+# Light hardening only: the job must read arbitrary backed-up paths as root,
+# and pre.d hooks write dumps under /var/lib.
+PrivateTmp=true
+ProtectSystem=full
+ProtectHome=read-only

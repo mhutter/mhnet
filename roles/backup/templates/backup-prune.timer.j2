@@ -1,0 +1,12 @@
+# Managed by Ansible (roles/backup).
+
+[Unit]
+Description=Weekly restic prune and check
+
+[Timer]
+OnCalendar={{ backup_prune_oncalendar }}
+RandomizedDelaySec={{ backup_prune_randomized_delay }}
+Persistent=true
+
+[Install]
+WantedBy=timers.target

@@ -1,0 +1,22 @@
+---
+backup_s3_endpoint: s3.eu-central-003.backblazeb2.com
+
+# The repository path MUST equal the B2 application key's file name prefix
+# ("<inventory_hostname>/", see scripts/b2-create-restic-key.sh). Renaming a
+# host in the inventory therefore breaks access to its existing repository.
+backup_restic_repository: "s3:{{ backup_s3_endpoint }}/{{ backup_b2_bucket }}/{{ inventory_hostname }}"
+
+backup_retention: "--keep-daily 7 --keep-weekly 4 --keep-monthly 12 --keep-yearly 10"
+
+# Hosts run on UTC; unattended-upgrades may reboot at 02:00 -- stay clear.
+backup_oncalendar: "*-*-* 03:30:00"
+backup_randomized_delay: 30m
+backup_prune_oncalendar: "Sun *-*-* 04:30:00"
+backup_prune_randomized_delay: 30m
+
+# Per-host secrets (no defaults, must come from the inventory):
+# backup_b2_account_id, backup_b2_account_key -- created by
+#   scripts/b2-create-restic-key.sh
+# backup_restic_password -- repository encryption password, e.g.
+#   `openssl rand -base64 32`. Keep a copy outside this repo; losing it
+#   means losing the backups.

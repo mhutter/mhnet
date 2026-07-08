@@ -1,0 +1,12 @@
+# Managed by Ansible (roles/backup).
+
+[Unit]
+Description=Daily restic backup
+
+[Timer]
+OnCalendar={{ backup_oncalendar }}
+RandomizedDelaySec={{ backup_randomized_delay }}
+Persistent=true
+
+[Install]
+WantedBy=timers.target

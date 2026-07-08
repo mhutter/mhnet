@@ -1,0 +1,17 @@
+# Managed by Ansible (roles/backup).
+
+[Unit]
+Description=restic prune and check
+Wants=network-online.target
+After=network-online.target
+
+[Service]
+Type=oneshot
+ExecStart=/usr/local/sbin/backup-run prune
+CacheDirectory=restic
+CacheDirectoryMode=0700
+Nice=10
+IOSchedulingClass=idle
+PrivateTmp=true
+ProtectSystem=full
+ProtectHome=read-only

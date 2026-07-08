@@ -1,0 +1,59 @@
+#!/usr/bin/env bash
+#
+# Restic backup wrapper. Configuration lives in /etc/backup:
+#   backup.env      repository, credentials, retention
+#   pre.d/*.sh      hooks run before backup in lexical order; a failing
+#                   hook aborts the backup
+#   paths.d/*.txt   paths to back up, one per line (verbatim, no globs)
+#   exclude.d/*.txt exclude patterns, one per line (optional)
+#
+# Usage: backup-run backup            daily: hooks, backup, forget
+#        backup-run prune             weekly: prune + check
+#        backup-run <restic args...>  passthrough, e.g. backup-run snapshots
+
+set -euo pipefail
+shopt -s nullglob
+
+ETC=/etc/backup
+set -a
+# shellcheck source=/dev/null
+. "$ETC/backup.env"
+set +a
+
+cmd=${1:?usage: backup-run backup|prune|<restic args...>}
+shift
+
+case "$cmd" in
+backup)
+  exec 9>/run/lock/backup-run.lock
+  flock -w 3600 9
+
+  for hook in "$ETC"/pre.d/*.sh; do
+    "$hook"
+  done
+
+  args=(backup --exclude-caches)
+  paths=("$ETC"/paths.d/*.txt)
+  if [ ${#paths[@]} -eq 0 ]; then
+    echo "backup-run: no path lists in $ETC/paths.d" >&2
+    exit 1
+  fi
+  for f in "${paths[@]}"; do args+=(--files-from-verbatim "$f"); done
+  for f in "$ETC"/exclude.d/*.txt; do args+=(--exclude-file "$f"); done
+  restic "${args[@]}"
+
+  # Group by host (not the default host+paths), so snapshots taken before a
+  # path-set change age out normally instead of being kept forever.
+  # shellcheck disable=SC2086  # retention flags are deliberately word-split
+  restic forget --group-by host $BACKUP_RETENTION
+  ;;
+prune)
+  exec 9>/run/lock/backup-run.lock
+  flock -w 3600 9
+  restic prune
+  restic check
+  ;;
+*)
+  exec restic "$cmd" "$@"
+  ;;
+esac

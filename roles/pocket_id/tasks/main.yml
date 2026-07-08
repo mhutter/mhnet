@@ -14,6 +14,7 @@
       - podman
       - passt # network namespace support for podman
       - cloudflared
+      - sqlite3 # for backups
     state: present
     update_cache: true
 
@@ -126,8 +127,48 @@
   become_user: pocket-id
   environment:
     XDG_RUNTIME_DIR: "/run/user/{{ pocket_id_user.uid }}"
-#
-# TODO: Backup
-# TODO: cloudflare tunnel
-#
 
+# Normally created by the backup role; kept here too so a standalone
+# `--tags pocket_id` run on a fresh host does not fail.
+- name: Ensure backup drop-in directories exist
+  ansible.builtin.file:
+    path: "{{ item }}"
+    state: directory
+    owner: root
+    group: root
+    mode: "0755"
+  loop:
+    - /etc/backup/paths.d
+    - /etc/backup/pre.d
+
+# root-owned: the pre-backup hook runs as root, and this keeps the dump
+# unreadable to the service user.
+- name: Create pocket-id database dump directory
+  ansible.builtin.file:
+    path: /var/lib/pocket-id/backup
+    state: directory
+    owner: root
+    group: root
+    mode: "0700"
+
+- name: Install pocket-id pre-backup hook
+  ansible.builtin.copy:
+    src: backup-pre.sh
+    dest: /etc/backup/pre.d/50-pocket-id.sh
+    owner: root
+    group: root
+    mode: "0755"
+
+# Deliberately not /var/lib/pocket-id wholesale -- that would drag in the
+# podman image storage under .local/share/containers. The live SQLite files
+# in data/ are crash-consistent at worst; the authoritative restore artifact
+# is the dump in backup/. pocket-id.env is regenerable from the inventory.
+- name: Register pocket-id backup paths
+  ansible.builtin.copy:
+    content: |
+      /var/lib/pocket-id/data
+      /var/lib/pocket-id/backup
+    dest: /etc/backup/paths.d/50-pocket-id.txt
+    owner: root
+    group: root
+    mode: "0644"

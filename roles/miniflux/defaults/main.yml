@@ -1,0 +1,18 @@
+---
+miniflux_db_name: miniflux
+miniflux_db_user: miniflux
+
+# cloudflared talks to this socket directly; no TCP port is opened.
+# /run/miniflux is created by the packaged unit (RuntimeDirectory=miniflux).
+miniflux_listen_socket: /run/miniflux/miniflux.sock
+
+miniflux_oauth2_provider_name: Pocket ID
+
+# Stubs -- replace before relying on this deployment.
+miniflux_app_url: "https://miniflux.CHANGEME.invalid"
+miniflux_oauth2_discovery_endpoint: "https://id.CHANGEME.invalid"
+miniflux_oauth2_client_id: CHANGEME
+miniflux_oauth2_client_secret: CHANGEME
+
+# Exposure via Cloudflare tunnel is handled by the cloudflared role; see
+# roles/cloudflared/defaults/main.yml for the required inventory variables.

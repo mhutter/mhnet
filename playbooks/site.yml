@@ -14,3 +14,9 @@
   roles:
     - role: pocket_id
       tags: pocket_id
+
+- hosts: miniflux
+  become: true
+  roles:
+    - role: miniflux
+      tags: miniflux

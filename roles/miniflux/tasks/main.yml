@@ -1,0 +1,123 @@
+---
+# dbconfig-no-thanks must be present before miniflux so it satisfies the
+# `dbconfig-pgsql | dbconfig-no-thanks` alternative and the debconf database
+# wizard never runs -- the database is managed explicitly below.
+- name: Install PostgreSQL
+  ansible.builtin.apt:
+    name:
+      - postgresql
+      - python3-psycopg2 # for the community.postgresql modules
+      - dbconfig-no-thanks
+    state: present
+    update_cache: true
+
+- name: Ensure PostgreSQL is enabled and started
+  ansible.builtin.systemd_service:
+    name: postgresql
+    enabled: true
+    state: started
+
+- name: Install miniflux
+  ansible.builtin.apt:
+    name: miniflux
+    state: present
+# The daemon runs as the miniflux system user (created by the package) and
+# connects over the local socket, so Debian's default `local all all peer`
+# rule authenticates it -- no password needed.
+- name: Create miniflux database user
+  community.postgresql.postgresql_user:
+    name: "{{ miniflux_db_user }}"
+  become: true
+  become_user: postgres
+
+- name: Create miniflux database
+  community.postgresql.postgresql_db:
+    name: "{{ miniflux_db_name }}"
+    owner: "{{ miniflux_db_user }}"
+  become: true
+  become_user: postgres
+
+# The package's postinst chmods the config back to world-readable 0644 on
+# every upgrade unless a statoverride on /etc/miniflux is registered -- and
+# the config holds the OAuth2 client secret.
+- name: Keep package upgrades from resetting /etc/miniflux permissions
+  ansible.builtin.command: dpkg-statoverride --update --add root miniflux 750 /etc/miniflux
+  register: miniflux_statoverride
+  changed_when: miniflux_statoverride.rc == 0
+  failed_when:
+    - miniflux_statoverride.rc != 0
+    - "'already exists' not in miniflux_statoverride.stderr"
+
+- name: Configure miniflux
+  ansible.builtin.template:
+    src: miniflux.conf.j2
+    dest: /etc/miniflux/miniflux.conf
+    owner: root
+    group: miniflux
+    mode: "0640"
+  notify: restart miniflux
+
+- name: Ensure miniflux service is enabled and started
+  ansible.builtin.systemd_service:
+    name: miniflux.service
+    enabled: true
+    state: started
+
+# --- Backups ---
+
+# Normally created by the backup role; kept here too so a standalone
+# `--tags miniflux` run on a fresh host does not fail.
+- name: Ensure backup drop-in directories exist
+  ansible.builtin.file:
+    path: "{{ item }}"
+    state: directory
+    owner: root
+    group: root
+    mode: "0755"
+  loop:
+    - /etc/backup/paths.d
+    - /etc/backup/pre.d
+
+# root-owned: the pre-backup hook runs as root, and this keeps the dump
+# unreadable to the service user.
+- name: Create miniflux database dump directory
+  ansible.builtin.file:
+    path: /var/backups/miniflux
+    state: directory
+    owner: root
+    group: root
+    mode: "0700"
+
+- name: Install miniflux pre-backup hook
+  ansible.builtin.copy:
+    src: backup-pre.sh
+    dest: /etc/backup/pre.d/50-miniflux.sh
+    owner: root
+    group: root
+    mode: "0755"
+
+# All state lives in PostgreSQL; the dump is the authoritative restore
+# artifact (PGDATA is deliberately not backed up raw). The config file is
+# regenerable from the inventory.
+- name: Register miniflux backup paths
+  ansible.builtin.copy:
+    content: |
+      /var/backups/miniflux
+    dest: /etc/backup/paths.d/50-miniflux.txt
+    owner: root
+    group: root
+    mode: "0644"
+
+# --- Cloudflare tunnel ---
+
+- name: Install the Cloudflare tunnel connector
+  ansible.builtin.include_role:
+    name: cloudflared
+
+- name: Expose miniflux through the Cloudflare tunnel
+  ansible.builtin.include_role:
+    name: cloudflared
+    tasks_from: expose
+  vars:
+    cloudflared_expose_hostname: "{{ miniflux_app_url | urlsplit('hostname') }}"
+    cloudflared_expose_service: "unix:{{ miniflux_listen_socket }}"

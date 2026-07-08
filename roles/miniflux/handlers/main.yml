@@ -1,0 +1,5 @@
+---
+- name: restart miniflux
+  ansible.builtin.systemd_service:
+    name: miniflux.service
+    state: restarted

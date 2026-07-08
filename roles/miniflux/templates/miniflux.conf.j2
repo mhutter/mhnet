@@ -1,0 +1,17 @@
+# Managed by Ansible (roles/miniflux).
+LISTEN_ADDR={{ miniflux_listen_socket }}
+BASE_URL={{ miniflux_app_url }}
+DATABASE_URL=user={{ miniflux_db_user }} dbname={{ miniflux_db_name }} host=/var/run/postgresql sslmode=disable
+RUN_MIGRATIONS=1
+
+# OIDC-only login via pocket-id; accounts are created on first login. The
+# OIDC library appends /.well-known/openid-configuration to the discovery
+# endpoint itself.
+OAUTH2_PROVIDER=oidc
+OAUTH2_CLIENT_ID={{ miniflux_oauth2_client_id }}
+OAUTH2_CLIENT_SECRET={{ miniflux_oauth2_client_secret }}
+OAUTH2_OIDC_DISCOVERY_ENDPOINT={{ miniflux_oauth2_discovery_endpoint }}
+OAUTH2_OIDC_PROVIDER_NAME={{ miniflux_oauth2_provider_name }}
+OAUTH2_REDIRECT_URL={{ miniflux_app_url }}/oauth2/oidc/callback
+OAUTH2_USER_CREATION=1
+DISABLE_LOCAL_AUTH=true

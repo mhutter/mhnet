@@ -12,6 +12,8 @@
           ansible
           apt-dater
         ];
+
+        APT_DATER_DTD_ROOT = "${pkgs.apt-dater}/share/xml/schema/apt-dater";
       };
     };
 }

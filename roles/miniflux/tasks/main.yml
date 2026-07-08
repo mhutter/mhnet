@@ -119,5 +119,5 @@
     name: cloudflared
     tasks_from: expose
   vars:
-    cloudflared_expose_hostname: "{{ miniflux_app_url | urlsplit('hostname') }}"
+    cloudflared_expose_hostname: "{{ miniflux_app_hostname }}"
     cloudflared_expose_service: "unix:{{ miniflux_listen_socket }}"

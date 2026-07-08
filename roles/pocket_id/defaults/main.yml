@@ -14,7 +14,7 @@ pocket_id_subid_count: 65536
 
 pocket_id_trust_proxy: true
 # Stubs -- replace before relying on this deployment.
-pocket_id_app_url: "https://pocket-id.CHANGEME.invalid"
+pocket_id_app_hostname: "pocket-id.CHANGEME.invalid"
 pocket_id_encryption_key: "CHANGEME-generate-with-openssl-rand-base64-32"
 
 # Exposure via Cloudflare tunnel is handled by the cloudflared role; see

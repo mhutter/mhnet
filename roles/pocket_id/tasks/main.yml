@@ -164,5 +164,5 @@
     name: cloudflared
     tasks_from: expose
   vars:
-    cloudflared_expose_hostname: "{{ pocket_id_app_url | urlsplit('hostname') }}"
+    cloudflared_expose_hostname: "{{ pocket_id_app_hostname }}"
     cloudflared_expose_service: "http://localhost:{{ pocket_id_port }}"

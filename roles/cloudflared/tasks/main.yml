@@ -1,0 +1,88 @@
+---
+# Installs and runs the cloudflared connector for this host's tunnel.
+# The tunnel itself is created once in the dashboard; its token and ID go
+# into the vaulted inventory. Use `tasks_from: expose` to route a public
+# hostname to a local service through the tunnel.
+
+- name: Ensure Cloudflare tunnel credentials are configured
+  ansible.builtin.assert:
+    that:
+      - cloudflared_tunnel_id is defined
+      - cloudflared_tunnel_token is defined
+    fail_msg: >-
+      Missing Cloudflare tunnel variables for {{ inventory_hostname }}. Create
+      the tunnel in the Cloudflare dashboard and add cloudflared_tunnel_id and
+      cloudflared_tunnel_token to the vaulted inventory.
+
+- name: Configure Cloudflared Repository
+  ansible.builtin.deb822_repository:
+    name: cloudflared
+    uris: https://pkg.cloudflare.com/cloudflared
+    types: deb
+    suites: any
+    components: main
+    signed_by: https://pkg.cloudflare.com/cloudflare-main.gpg
+
+- name: Install cloudflared
+  ansible.builtin.apt:
+    name: cloudflared
+    state: present
+    update_cache: true
+
+- name: Create cloudflared config directory
+  ansible.builtin.file:
+    path: /etc/cloudflared
+    state: directory
+    owner: root
+    group: root
+    mode: "0755"
+
+- name: Configure cloudflared environment
+  ansible.builtin.template:
+    src: cloudflared.env.j2
+    dest: /etc/cloudflared/env
+    owner: root
+    group: root
+    mode: "0600"
+  notify: restart cloudflared
+
+- name: Install cloudflared systemd unit
+  ansible.builtin.template:
+    src: cloudflared.service.j2
+    dest: /etc/systemd/system/cloudflared.service
+    owner: root
+    group: root
+    mode: "0644"
+  notify:
+    - systemd daemon-reload
+    - restart cloudflared
+
+# `cloudflared service install` also set up self-update units; the package
+# is updated through apt, so they are redundant.
+- name: Check for cloudflared self-update timer
+  ansible.builtin.stat:
+    path: /etc/systemd/system/cloudflared-update.timer
+  register: cloudflared_update_timer
+
+- name: Disable cloudflared self-update timer
+  ansible.builtin.systemd_service:
+    name: cloudflared-update.timer
+    enabled: false
+    state: stopped
+  when: cloudflared_update_timer.stat.exists
+
+- name: Remove cloudflared self-update units
+  ansible.builtin.file:
+    path: "{{ item }}"
+    state: absent
+  loop:
+    - /etc/systemd/system/cloudflared-update.timer
+    - /etc/systemd/system/cloudflared-update.service
+  notify: systemd daemon-reload
+
+- name: Ensure cloudflared service is enabled and started
+  ansible.builtin.systemd_service:
+    name: cloudflared.service
+    daemon_reload: true
+    enabled: true
+    state: started

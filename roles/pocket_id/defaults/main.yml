@@ -17,19 +17,5 @@ pocket_id_trust_proxy: true
 pocket_id_app_url: "https://pocket-id.CHANGEME.invalid"
 pocket_id_encryption_key: "CHANGEME-generate-with-openssl-rand-base64-32"
 
-# Cloudflare tunnel ingress, derived from the app URL/port so the backend
-# never has to be typed anywhere. Pushed to the Cloudflare API on each run;
-# dashboard edits get overwritten.
-pocket_id_tunnel_ingress:
-  - hostname: "{{ pocket_id_app_url | urlsplit('hostname') }}"
-    service: "http://localhost:{{ pocket_id_port }}"
-  - service: http_status:404
-
-# DNS zone containing the app hostname. The default assumes a single
-# subdomain level (id.mhnet.app -> mhnet.app); override for deeper ones.
-pocket_id_tunnel_zone: "{{ (pocket_id_app_url | urlsplit('hostname')).split('.', 1) | last }}"
-
-# Required from the inventory (no usable defaults):
-# cloudflare_account_id, cloudflare_api_token
-#   (Account > Cloudflare Tunnel > Edit, plus Zone > DNS > Edit for the zone)
-# pocket_id_tunnel_id, pocket_id_tunnel_token (from the tunnel's dashboard page)
+# Exposure via Cloudflare tunnel is handled by the cloudflared role; see
+# roles/cloudflared/defaults/main.yml for the required inventory variables.

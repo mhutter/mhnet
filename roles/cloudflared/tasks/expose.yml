@@ -1,0 +1,85 @@
+---
+# Routes one public hostname to a local service through this host's tunnel.
+# Include from an app role:
+#
+#   - name: Expose my-app through the Cloudflare tunnel
+#     ansible.builtin.include_role:
+#       name: cloudflared
+#       tasks_from: expose
+#     vars:
+#       cloudflared_expose_hostname: my-app.example.com
+#       cloudflared_expose_service: "http://localhost:8080"
+#
+# The hostname is upserted into the tunnel's ingress, so several roles can
+# each expose their own hostname on the same tunnel. Consequence: removing
+# a role does not remove its ingress entry or DNS record -- clean those up
+# in the dashboard.
+
+- name: Ensure Cloudflare API credentials are configured
+  ansible.builtin.assert:
+    that:
+      - cloudflare_account_id is defined
+      - cloudflare_api_token is defined
+      - cloudflared_tunnel_id is defined
+      - cloudflared_expose_hostname is defined
+      - cloudflared_expose_service is defined
+    fail_msg: >-
+      Missing Cloudflare variables for {{ inventory_hostname }}. Add
+      cloudflare_account_id, cloudflare_api_token and cloudflared_tunnel_id to
+      the vaulted inventory, and pass cloudflared_expose_hostname and
+      cloudflared_expose_service to the include.
+
+- name: Fetch current tunnel configuration
+  ansible.builtin.uri:
+    url: "https://api.cloudflare.com/client/v4/accounts/{{ cloudflare_account_id }}/cfd_tunnel/{{ cloudflared_tunnel_id }}/configurations"
+    headers:
+      Authorization: "Bearer {{ cloudflare_api_token }}"
+  register: cloudflared_expose_config
+  delegate_to: localhost
+  become: false
+
+# Keep other hostnames' entries untouched, replace ours, and re-append the
+# catch-all last (Cloudflare requires it as the final entry). The API returns
+# entries with extra fields (e.g. originRequest), so compare only the
+# hostname/service projection.
+- name: "Configure tunnel ingress for {{ cloudflared_expose_hostname }}"
+  ansible.builtin.uri:
+    url: "https://api.cloudflare.com/client/v4/accounts/{{ cloudflare_account_id }}/cfd_tunnel/{{ cloudflared_tunnel_id }}/configurations"
+    method: PUT
+    headers:
+      Authorization: "Bearer {{ cloudflare_api_token }}"
+    body_format: json
+    body:
+      config:
+        ingress: "{{ cloudflared_expose_ingress }}"
+  vars:
+    cloudflared_expose_current: "{{ (cloudflared_expose_config.json.result.config | default({}, true)).ingress | default([], true) }}"
+    cloudflared_expose_others: "{{ cloudflared_expose_current | selectattr('hostname', 'defined') | rejectattr('hostname', 'in', ['', cloudflared_expose_hostname]) | list }}"
+    cloudflared_expose_ingress: >-
+      {{ cloudflared_expose_others
+         + [{'hostname': cloudflared_expose_hostname, 'service': cloudflared_expose_service}]
+         + [{'service': 'http_status:404'}] }}
+  when: >-
+    cloudflared_expose_current | map(attribute='hostname', default='') | list
+      != cloudflared_expose_ingress | map(attribute='hostname', default='') | list
+    or cloudflared_expose_current | map(attribute='service') | list
+      != cloudflared_expose_ingress | map(attribute='service') | list
+  changed_when: true
+  delegate_to: localhost
+  become: false
+
+# The dashboard's "public hostname" flow creates this record implicitly;
+# via the API it is a separate concern, so manage it explicitly.
+- name: "Configure tunnel DNS record for {{ cloudflared_expose_hostname }}"
+  community.general.cloudflare_dns:
+    zone: "{{ cloudflared_expose_zone }}"
+    record: "{{ cloudflared_expose_hostname }}"
+    type: CNAME
+    value: "{{ cloudflared_tunnel_id }}.cfargotunnel.com"
+    proxied: true
+    ttl: 1
+    solo: true
+    api_token: "{{ cloudflare_api_token }}"
+    state: present
+  delegate_to: localhost
+  become: false

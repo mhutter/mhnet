@@ -1,0 +1,13 @@
+---
+# Required from the inventory (no usable defaults):
+# cloudflare_account_id, cloudflare_api_token
+#   (Account > Cloudflare Tunnel > Edit, plus Zone > DNS > Edit for the zone)
+# cloudflared_tunnel_id, cloudflared_tunnel_token (from the tunnel's dashboard page)
+
+# Parameters for `tasks_from: expose` (set via include_role vars):
+# cloudflared_expose_hostname -- public hostname to route
+# cloudflared_expose_service  -- backend, e.g. http://localhost:1411
+
+# DNS zone containing the exposed hostname. The default assumes a single
+# subdomain level (id.mhnet.app -> mhnet.app); override for deeper ones.
+cloudflared_expose_zone: "{{ cloudflared_expose_hostname.split('.', 1) | last }}"

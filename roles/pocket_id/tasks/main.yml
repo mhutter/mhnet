@@ -1,19 +1,9 @@
 ---
-- name: Configure Cloudflared Repository
-  ansible.builtin.deb822_repository:
-    name: cloudflared
-    uris: https://pkg.cloudflare.com/cloudflared
-    types: deb
-    suites: any
-    components: main
-    signed_by: https://pkg.cloudflare.com/cloudflare-main.gpg
-
 - name: Install required software
   ansible.builtin.apt:
     name:
       - podman
       - passt # network namespace support for podman
-      - cloudflared
       - sqlite3 # for backups
     state: present
     update_cache: true
@@ -174,125 +164,15 @@
     mode: "0644"
 
 # --- Cloudflare tunnel ---
-# The tunnel itself (and its DNS CNAME) is created once in the dashboard;
-# its token and ID go into the vaulted inventory. Everything else -- the
-# connector service and the ingress configuration -- is managed here.
 
-- name: Ensure Cloudflare tunnel credentials are configured
-  ansible.builtin.assert:
-    that:
-      - cloudflare_account_id is defined
-      - cloudflare_api_token is defined
-      - pocket_id_tunnel_id is defined
-      - pocket_id_tunnel_token is defined
-    fail_msg: >-
-      Missing Cloudflare tunnel variables for {{ inventory_hostname }}. Create
-      the tunnel in the Cloudflare dashboard and add cloudflare_account_id,
-      cloudflare_api_token, pocket_id_tunnel_id and pocket_id_tunnel_token to
-      the vaulted inventory.
+- name: Install the Cloudflare tunnel connector
+  ansible.builtin.include_role:
+    name: cloudflared
 
-- name: Create cloudflared config directory
-  ansible.builtin.file:
-    path: /etc/cloudflared
-    state: directory
-    owner: root
-    group: root
-    mode: "0755"
-
-- name: Configure cloudflared environment
-  ansible.builtin.template:
-    src: cloudflared.env.j2
-    dest: /etc/cloudflared/env
-    owner: root
-    group: root
-    mode: "0600"
-  notify: restart cloudflared
-
-- name: Install cloudflared systemd unit
-  ansible.builtin.template:
-    src: cloudflared.service.j2
-    dest: /etc/systemd/system/cloudflared.service
-    owner: root
-    group: root
-    mode: "0644"
-  notify:
-    - systemd daemon-reload
-    - restart cloudflared
-
-# `cloudflared service install` also set up self-update units; the package
-# is updated through apt, so they are redundant.
-- name: Check for cloudflared self-update timer
-  ansible.builtin.stat:
-    path: /etc/systemd/system/cloudflared-update.timer
-  register: pocket_id_cf_update_timer
-
-- name: Disable cloudflared self-update timer
-  ansible.builtin.systemd_service:
-    name: cloudflared-update.timer
-    enabled: false
-    state: stopped
-  when: pocket_id_cf_update_timer.stat.exists
-
-- name: Remove cloudflared self-update units
-  ansible.builtin.file:
-    path: "{{ item }}"
-    state: absent
-  loop:
-    - /etc/systemd/system/cloudflared-update.timer
-    - /etc/systemd/system/cloudflared-update.service
-  notify: systemd daemon-reload
-
-- name: Ensure cloudflared service is enabled and started
-  ansible.builtin.systemd_service:
-    name: cloudflared.service
-    daemon_reload: true
-    enabled: true
-    state: started
-
-- name: Fetch current tunnel configuration
-  ansible.builtin.uri:
-    url: "https://api.cloudflare.com/client/v4/accounts/{{ cloudflare_account_id }}/cfd_tunnel/{{ pocket_id_tunnel_id }}/configurations"
-    headers:
-      Authorization: "Bearer {{ cloudflare_api_token }}"
-  register: pocket_id_tunnel_config
-  delegate_to: localhost
-  become: false
-
-# The API returns ingress entries with extra fields (e.g. originRequest),
-# so compare only the hostname/service projection.
-- name: Configure tunnel ingress
-  ansible.builtin.uri:
-    url: "https://api.cloudflare.com/client/v4/accounts/{{ cloudflare_account_id }}/cfd_tunnel/{{ pocket_id_tunnel_id }}/configurations"
-    method: PUT
-    headers:
-      Authorization: "Bearer {{ cloudflare_api_token }}"
-    body_format: json
-    body:
-      config:
-        ingress: "{{ pocket_id_tunnel_ingress }}"
+- name: Expose pocket-id through the Cloudflare tunnel
+  ansible.builtin.include_role:
+    name: cloudflared
+    tasks_from: expose
   vars:
-    pocket_id_tunnel_ingress_current: "{{ (pocket_id_tunnel_config.json.result.config | default({}, true)).ingress | default([], true) }}"
-  when: >-
-    pocket_id_tunnel_ingress_current | map(attribute='hostname', default='') | list
-      != pocket_id_tunnel_ingress | map(attribute='hostname', default='') | list
-    or pocket_id_tunnel_ingress_current | map(attribute='service') | list
-      != pocket_id_tunnel_ingress | map(attribute='service') | list
-  changed_when: true
-  delegate_to: localhost
-  become: false
-
-# The dashboard's "public hostname" flow creates this record implicitly;
-# via the API it is a separate concern, so manage it explicitly.
-- name: Configure tunnel DNS record
-  community.general.cloudflare_dns:
-    zone: "{{ pocket_id_tunnel_zone }}"
-    record: "{{ pocket_id_app_url | urlsplit('hostname') }}"
-    type: CNAME
-    value: "{{ pocket_id_tunnel_id }}.cfargotunnel.com"
-    proxied: true
-    ttl: 1
-    solo: true
-    api_token: "{{ cloudflare_api_token }}"
-    state: present
-  delegate_to: localhost
-  become: false
+    cloudflared_expose_hostname: "{{ pocket_id_app_url | urlsplit('hostname') }}"
+    cloudflared_expose_service: "http://localhost:{{ pocket_id_port }}"

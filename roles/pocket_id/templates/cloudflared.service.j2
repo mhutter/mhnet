@@ -1,0 +1,19 @@
+# Managed by Ansible (roles/pocket_id).
+# Replaces the unit from `cloudflared service install`; the tunnel token
+# lives in the environment file instead of on the command line.
+
+[Unit]
+Description=cloudflared
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+TimeoutStartSec=15
+Type=notify
+EnvironmentFile=/etc/cloudflared/env
+ExecStart=/usr/bin/cloudflared --no-autoupdate tunnel run
+Restart=on-failure
+RestartSec=5s
+
+[Install]
+WantedBy=multi-user.target

@@ -20,9 +20,14 @@ console, otherwise pruned data lingers as hidden file versions.
 Manual operations on a host: `backup-run snapshots`, `backup-run restore ...`
 (wraps restic with the credentials from `/etc/backup/backup.env`).
 
-## Backlog
+## Cloudflare tunnels
 
-- [x] pocket-id: expose
-- [x] pocket-id backup
-- [ ] apt-dater config file
-- [ ] encrypted inventory
+Tunnel creation is a one-time dashboard step (create the tunnel, note its ID
+and token). Everything else is Ansible: the connector service on the host, the
+ingress configuration (backend URL derived from the role's app URL/port vars)
+pushed to the Cloudflare API on each run — dashboard edits get overwritten —
+and the DNS CNAME `<app-host>` → `<tunnel-id>.cfargotunnel.com`.
+
+Required inventory vars: `cloudflare_account_id` and `cloudflare_api_token`
+(API token with Account > Cloudflare Tunnel > Edit and Zone > DNS > Edit) at
+the `all` level; `pocket_id_tunnel_id` and `pocket_id_tunnel_token` per host.

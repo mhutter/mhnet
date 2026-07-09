@@ -1,0 +1,63 @@
+---
+# dbconfig-no-thanks is installed alongside so packaged apps depending on
+# `dbconfig-pgsql | dbconfig-no-thanks` (e.g. miniflux) never trigger the
+# debconf database wizard -- databases are managed via tasks_from: database.
+- name: Install PostgreSQL
+  ansible.builtin.apt:
+    name:
+      - postgresql
+      - python3-psycopg2 # for the community.postgresql modules
+      - dbconfig-no-thanks
+    state: present
+    update_cache: true
+
+- name: Ensure PostgreSQL is enabled and started
+  ansible.builtin.systemd_service:
+    name: postgresql
+    enabled: true
+    state: started
+
+# --- Backups ---
+
+# Normally created by the backup role; kept here too so a standalone
+# app-tag run on a fresh host does not fail.
+- name: Ensure backup drop-in directories exist
+  ansible.builtin.file:
+    path: "{{ item }}"
+    state: directory
+    owner: root
+    group: root
+    mode: "0755"
+  loop:
+    - /etc/backup/paths.d
+    - /etc/backup/pre.d
+
+# root-owned: the pre-backup hook runs as root, and this keeps the dumps
+# unreadable to service users.
+- name: Create PostgreSQL dump directory
+  ansible.builtin.file:
+    path: /var/backups/postgresql
+    state: directory
+    owner: root
+    group: root
+    mode: "0700"
+
+# Dumps every database, so app roles need no backup hooks of their own.
+- name: Install PostgreSQL pre-backup hook
+  ansible.builtin.copy:
+    src: backup-pre.sh
+    dest: /etc/backup/pre.d/50-postgresql.sh
+    owner: root
+    group: root
+    mode: "0755"
+
+# The dumps are the authoritative restore artifact; PGDATA is deliberately
+# not backed up raw.
+- name: Register PostgreSQL backup paths
+  ansible.builtin.copy:
+    content: |
+      /var/backups/postgresql
+    dest: /etc/backup/paths.d/50-postgresql.txt
+    owner: root
+    group: root
+    mode: "0644"

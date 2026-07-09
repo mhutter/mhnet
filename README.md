@@ -20,6 +20,33 @@ console, otherwise pruned data lingers as hidden file versions.
 Manual operations on a host: `backup-run snapshots`, `backup-run restore ...`
 (wraps restic with the credentials from `/etc/backup/backup.env`).
 
+## PostgreSQL
+
+The `postgresql` role installs the server from apt and hooks it into the
+backup role: a pre-backup hook dumps every database (custom format) plus the
+globals to `/var/backups/postgresql`, which is registered as a backup path.
+The dumps are the restore artifact; PGDATA is not backed up raw.
+
+App roles include the role for the server and then create their database:
+
+```yaml
+- name: Install PostgreSQL
+  ansible.builtin.include_role:
+    name: postgresql
+
+- name: Create my-app database
+  ansible.builtin.include_role:
+    name: postgresql
+    tasks_from: database
+  vars:
+    postgresql_database_name: myapp
+```
+
+The owning role defaults to the database name (override with
+`postgresql_database_owner`) and gets no password: app daemons run as a
+matching system user and connect over the local socket, where Debian's
+default `local all all peer` rule authenticates them.
+
 ## Cloudflare tunnels
 
 Tunnel creation is a one-time dashboard step (create the tunnel, note its ID

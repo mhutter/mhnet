@@ -1,41 +1,22 @@
 ---
-# dbconfig-no-thanks must be present before miniflux so it satisfies the
-# `dbconfig-pgsql | dbconfig-no-thanks` alternative and the debconf database
-# wizard never runs -- the database is managed explicitly below.
+# Also installs dbconfig-no-thanks, which must be present before miniflux so
+# the debconf database wizard never runs.
 - name: Install PostgreSQL
-  ansible.builtin.apt:
-    name:
-      - postgresql
-      - python3-psycopg2 # for the community.postgresql modules
-      - dbconfig-no-thanks
-    state: present
-    update_cache: true
-
-- name: Ensure PostgreSQL is enabled and started
-  ansible.builtin.systemd_service:
+  ansible.builtin.include_role:
     name: postgresql
-    enabled: true
-    state: started
 
 - name: Install miniflux
   ansible.builtin.apt:
     name: miniflux
     state: present
-# The daemon runs as the miniflux system user (created by the package) and
-# connects over the local socket, so Debian's default `local all all peer`
-# rule authenticates it -- no password needed.
-- name: Create miniflux database user
-  community.postgresql.postgresql_user:
-    name: "{{ miniflux_db_user }}"
-  become: true
-  become_user: postgres
 
 - name: Create miniflux database
-  community.postgresql.postgresql_db:
-    name: "{{ miniflux_db_name }}"
-    owner: "{{ miniflux_db_user }}"
-  become: true
-  become_user: postgres
+  ansible.builtin.include_role:
+    name: postgresql
+    tasks_from: database
+  vars:
+    postgresql_database_name: "{{ miniflux_db_name }}"
+    postgresql_database_owner: "{{ miniflux_db_user }}"
 
 # The package's postinst chmods the config back to world-readable 0644 on
 # every upgrade unless a statoverride on /etc/miniflux is registered -- and
@@ -63,50 +44,16 @@
     enabled: true
     state: started
 
-# --- Backups ---
-
-# Normally created by the backup role; kept here too so a standalone
-# `--tags miniflux` run on a fresh host does not fail.
-- name: Ensure backup drop-in directories exist
+# Superseded by the postgresql role's all-databases hook; drop these tasks
+# once scw-miniflux has converged.
+- name: Remove legacy miniflux backup hook
   ansible.builtin.file:
     path: "{{ item }}"
-    state: directory
-    owner: root
-    group: root
-    mode: "0755"
+    state: absent
   loop:
-    - /etc/backup/paths.d
-    - /etc/backup/pre.d
-
-# root-owned: the pre-backup hook runs as root, and this keeps the dump
-# unreadable to the service user.
-- name: Create miniflux database dump directory
-  ansible.builtin.file:
-    path: /var/backups/miniflux
-    state: directory
-    owner: root
-    group: root
-    mode: "0700"
-
-- name: Install miniflux pre-backup hook
-  ansible.builtin.copy:
-    src: backup-pre.sh
-    dest: /etc/backup/pre.d/50-miniflux.sh
-    owner: root
-    group: root
-    mode: "0755"
-
-# All state lives in PostgreSQL; the dump is the authoritative restore
-# artifact (PGDATA is deliberately not backed up raw). The config file is
-# regenerable from the inventory.
-- name: Register miniflux backup paths
-  ansible.builtin.copy:
-    content: |
-      /var/backups/miniflux
-    dest: /etc/backup/paths.d/50-miniflux.txt
-    owner: root
-    group: root
-    mode: "0644"
+    - /etc/backup/pre.d/50-miniflux.sh
+    - /etc/backup/paths.d/50-miniflux.txt
+    - /var/backups/miniflux
 
 # --- Cloudflare tunnel ---
 

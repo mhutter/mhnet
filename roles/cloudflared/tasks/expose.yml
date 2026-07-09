@@ -82,4 +82,5 @@
     api_token: "{{ cloudflare_api_token }}"
     state: present
   delegate_to: localhost
+  retries: 3
   become: false

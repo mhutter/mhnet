@@ -27,8 +27,8 @@ ends up hosting more than one instance of the same purpose.
 
 - `inventory/hosts.yml` — fully Ansible Vault-encrypted; hosts, groups, and all
   vars (secrets included) live here
-- `roles/` — `common`, `firewall`, `backup`, `cloudflared`, `dns64` apply
-  broadly; `pocket_id`, `miniflux` are per-app
+- `roles/` — `common`, `firewall`, `backup`, `cloudflared`, `postgresql`,
+  `dns64` apply broadly; `pocket_id`, `miniflux` are per-app
 - `playbooks/site.yml` — main playbook, run against `all` plus per-app host
   groups; roles are tagged with their own name for selective runs
 - `playbooks/bootstrap.yml` — minimal `common`-only pass for brand-new hosts

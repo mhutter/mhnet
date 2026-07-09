@@ -1,0 +1,36 @@
+---
+# Creates a database and its owning role for an app. Include from an app role
+# (after the postgresql role itself):
+#
+#   - name: Create my-app database
+#     ansible.builtin.include_role:
+#       name: postgresql
+#       tasks_from: database
+#     vars:
+#       postgresql_database_name: myapp
+#
+# The owning role defaults to the database name and is created without a
+# password: app daemons run as a matching system user and connect over the
+# local socket, so Debian's default `local all all peer` rule authenticates
+# them.
+
+- name: Ensure a database name is given
+  ansible.builtin.assert:
+    that:
+      - postgresql_database_name is defined
+    fail_msg: >-
+      Pass postgresql_database_name (and optionally
+      postgresql_database_owner) to the include.
+
+- name: "Create database user {{ postgresql_database_owner }}"
+  community.postgresql.postgresql_user:
+    name: "{{ postgresql_database_owner }}"
+  become: true
+  become_user: postgres
+
+- name: "Create database {{ postgresql_database_name }}"
+  community.postgresql.postgresql_db:
+    name: "{{ postgresql_database_name }}"
+    owner: "{{ postgresql_database_owner }}"
+  become: true
+  become_user: postgres

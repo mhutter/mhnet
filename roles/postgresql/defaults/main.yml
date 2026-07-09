@@ -1,0 +1,5 @@
+---
+# Parameters for `tasks_from: database` (set via include_role vars):
+# postgresql_database_name  -- database to create (required)
+# postgresql_database_owner -- owning role, created without a password
+postgresql_database_owner: "{{ postgresql_database_name }}"

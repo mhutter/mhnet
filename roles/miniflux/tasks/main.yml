@@ -44,17 +44,6 @@
     enabled: true
     state: started
 
-# Superseded by the postgresql role's all-databases hook; drop these tasks
-# once scw-miniflux has converged.
-- name: Remove legacy miniflux backup hook
-  ansible.builtin.file:
-    path: "{{ item }}"
-    state: absent
-  loop:
-    - /etc/backup/pre.d/50-miniflux.sh
-    - /etc/backup/paths.d/50-miniflux.txt
-    - /var/backups/miniflux
-
 # --- Cloudflare tunnel ---
 
 - name: Install the Cloudflare tunnel connector

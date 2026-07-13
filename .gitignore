@@ -1,4 +1,4 @@
 .ansible/
 *.tgz
-out/
 .vaultpass
+/hosts.xml

@@ -8,15 +8,25 @@
     mode: "0755"
 
 # Domains=~. makes these global servers win over the per-link (DHCP-provided)
-# resolvers, which are not DNS64-capable.
+# resolvers, which are not DNS64-capable. The empty DNS= matters too: some
+# provider images (netcup) set global DNS= in the main resolved.conf, and
+# drop-in assignments append to that list -- the reset clears it so the
+# DNS64 servers are the only global ones.
 - name: Configure DNS64 resolvers
   ansible.builtin.copy:
     dest: /etc/systemd/resolved.conf.d/dns64.conf
     content: |
       [Resolve]
+      DNS=
       DNS={{ dns64_resolvers | join(' ') }}
       Domains=~.
     owner: root
     group: root
     mode: "0644"
   notify: restart systemd-resolved.service
+
+# Later roles in the same play may already depend on DNS64 (e.g.
+# monitoring_hub downloading from IPv4-only github.com), so the restart
+# cannot wait for end-of-play handlers.
+- name: Apply resolver configuration
+  ansible.builtin.meta: flush_handlers

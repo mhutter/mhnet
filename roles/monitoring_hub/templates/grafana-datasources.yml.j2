@@ -1,0 +1,29 @@
+# {{ ansible_managed }}
+# Both datasources go through the public ingest endpoints so the same TLS
+# certificate and auth apply; from the hub itself that traffic stays on
+# loopback.
+apiVersion: 1
+
+datasources:
+  - name: VictoriaMetrics
+    uid: victoriametrics
+    type: prometheus
+    access: proxy
+    url: "https://{{ monitoring_ingest_hostname }}:{{ monitoring_metrics_port }}"
+    isDefault: true
+    basicAuth: true
+    basicAuthUser: "{{ monitoring_remote_write_user }}"
+    secureJsonData:
+      basicAuthPassword: "{{ monitoring_remote_write_password }}"
+    jsonData:
+      timeInterval: "{{ monitoring_scrape_interval }}"
+
+  - name: VictoriaLogs
+    uid: victorialogs
+    type: victoriametrics-logs-datasource
+    access: proxy
+    url: "https://{{ monitoring_ingest_hostname }}:{{ monitoring_logs_port }}"
+    basicAuth: true
+    basicAuthUser: "{{ monitoring_remote_write_user }}"
+    secureJsonData:
+      basicAuthPassword: "{{ monitoring_remote_write_password }}"

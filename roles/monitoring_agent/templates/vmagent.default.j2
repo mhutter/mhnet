@@ -1,0 +1,4 @@
+# {{ ansible_managed }}
+# -enableTCP6 is required on this IPv6-only fleet: VictoriaMetrics binaries
+# dial and listen IPv4-only without it.
+ARGS="-enableTCP6 -promscrape.config=/etc/vmagent/scrape.yml -remoteWrite.url=https://{{ monitoring_ingest_hostname }}:{{ monitoring_metrics_port }}/api/v1/write -remoteWrite.basicAuth.username={{ monitoring_remote_write_user }} -remoteWrite.basicAuth.passwordFile=/etc/vmagent/remote-write.password -remoteWrite.tmpDataPath=/var/lib/vmagent -remoteWrite.maxDiskUsagePerURL={{ monitoring_agent_max_buffer }} -httpListenAddr=127.0.0.1:8429"

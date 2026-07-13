@@ -1,0 +1,20 @@
+# {{ ansible_managed }}
+# VictoriaLogs is not packaged in Debian; this mirrors the package unit of
+# victoria-metrics for the pinned upstream binary.
+
+[Unit]
+Description=VictoriaLogs log database
+Documentation=https://docs.victoriametrics.com/victorialogs/
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+User=victorialogs
+EnvironmentFile=/etc/default/victorialogs
+ExecStart=/usr/local/bin/victoria-logs $ARGS
+LimitNOFILE=65536
+Restart=on-failure
+RestartSec=5s
+
+[Install]
+WantedBy=multi-user.target

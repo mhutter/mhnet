@@ -1,0 +1,202 @@
+---
+# Push-only monitoring agent, three small pieces on every host: node_exporter
+# bound to localhost, vmagent scraping it and pushing to the hub via
+# remote_write, and systemd-journal-upload streaming the journal to
+# VictoriaLogs. No inbound connections; hub downtime is buffered (vmagent
+# spools to disk, the journal itself is journal-upload's buffer).
+
+- name: Ensure monitoring agent variables are configured
+  ansible.builtin.assert:
+    that:
+      - monitoring_ingest_hostname is defined
+      - monitoring_remote_write_password is defined
+    fail_msg: >-
+      Missing monitoring variables for {{ inventory_hostname }}. Add
+      monitoring_ingest_hostname and monitoring_remote_write_password at the
+      `all` level of the vaulted inventory (see README).
+
+# victoria-metrics is installed only for its vmagent binary, and the package
+# auto-starts the bundled server; masking beforehand keeps it from ever
+# running (or briefly listening unauthenticated) on non-hub hosts.
+- name: Mask the VictoriaMetrics server on non-hub hosts
+  ansible.builtin.systemd_service:
+    name: victoria-metrics.service
+    masked: true
+  when: not monitoring_agent_is_hub
+
+- name: Install monitoring agent packages
+  ansible.builtin.apt:
+    name:
+      - prometheus-node-exporter
+      - systemd-journal-remote
+      - victoria-metrics
+    state: present
+
+# --- node_exporter ---
+
+- name: Bind node_exporter to localhost
+  ansible.builtin.copy:
+    content: |
+      # Managed by Ansible (roles/monitoring_agent).
+      ARGS="--web.listen-address=[::1]:9100"
+    dest: /etc/default/prometheus-node-exporter
+    owner: root
+    group: root
+    mode: "0644"
+  notify: restart node exporter
+
+- name: Ensure node_exporter is enabled and started
+  ansible.builtin.systemd_service:
+    name: prometheus-node-exporter.service
+    enabled: true
+    state: started
+
+# --- vmagent ---
+
+- name: Create vmagent system user
+  ansible.builtin.user:
+    name: vmagent
+    system: true
+    home: /var/lib/vmagent
+    create_home: false
+    shell: /usr/sbin/nologin
+
+- name: Create vmagent configuration directory
+  ansible.builtin.file:
+    path: /etc/vmagent
+    state: directory
+    owner: root
+    group: root
+    mode: "0755"
+
+- name: Create vmagent buffer directory
+  ansible.builtin.file:
+    path: /var/lib/vmagent
+    state: directory
+    owner: vmagent
+    group: vmagent
+    mode: "0750"
+
+- name: Configure vmagent remote write password
+  ansible.builtin.copy:
+    content: "{{ monitoring_remote_write_password }}"
+    dest: /etc/vmagent/remote-write.password
+    owner: root
+    group: vmagent
+    mode: "0640"
+  notify: restart vmagent
+
+- name: Configure vmagent scrape targets
+  ansible.builtin.template:
+    src: scrape.yml.j2
+    dest: /etc/vmagent/scrape.yml
+    owner: root
+    group: root
+    mode: "0644"
+  notify: restart vmagent
+
+- name: Configure vmagent arguments
+  ansible.builtin.template:
+    src: vmagent.default.j2
+    dest: /etc/default/vmagent
+    owner: root
+    group: root
+    mode: "0644"
+  notify: restart vmagent
+
+- name: Install vmagent systemd unit
+  ansible.builtin.template:
+    src: vmagent.service.j2
+    dest: /etc/systemd/system/vmagent.service
+    owner: root
+    group: root
+    mode: "0644"
+  notify: restart vmagent
+
+- name: Ensure vmagent is enabled and started
+  ansible.builtin.systemd_service:
+    name: vmagent.service
+    daemon_reload: true
+    enabled: true
+    state: started
+
+# --- journal upload ---
+
+- name: Create systemd configuration drop-in directories
+  ansible.builtin.file:
+    path: "{{ item }}"
+    state: directory
+    owner: root
+    group: root
+    mode: "0755"
+  loop:
+    - /etc/systemd/journal-upload.conf.d
+    - /etc/systemd/journald.conf.d
+    - /etc/systemd/system/systemd-journal-upload.service.d
+
+- name: Create journal-upload config group
+  ansible.builtin.group:
+    name: journal-upload
+    system: true
+
+# Two overrides: journal-upload exits whenever the hub is unreachable, so
+# without disabling the start limit a hub outage of a few seconds kills log
+# shipping permanently; and the packaged unit runs with DynamicUser, so the
+# supplementary group grants it read access to the config drop-in holding
+# the auth header.
+- name: Override the journal-upload service
+  ansible.builtin.copy:
+    content: |
+      # Managed by Ansible (roles/monitoring_agent).
+      [Unit]
+      StartLimitIntervalSec=0
+
+      [Service]
+      SupplementaryGroups=journal-upload
+    dest: /etc/systemd/system/systemd-journal-upload.service.d/mhnet.conf
+    owner: root
+    group: root
+    mode: "0644"
+  notify: restart journal upload
+
+# journal-upload appends /upload to the URL, landing on VictoriaLogs'
+# /insert/journald/upload endpoint. The `-` key/cert values matter: for any
+# https URL journal-upload otherwise loads its default client certificate
+# paths, which do not exist, and fails every upload. Header= needs
+# systemd >= 258 and carries the basic auth VictoriaLogs requires.
+- name: Configure journal upload to VictoriaLogs
+  ansible.builtin.copy:
+    content: |
+      # Managed by Ansible (roles/monitoring_agent).
+      [Upload]
+      URL=https://{{ monitoring_ingest_hostname }}:{{ monitoring_logs_port }}/insert/journald
+      ServerKeyFile=-
+      ServerCertificateFile=-
+      TrustedCertificateFile=/etc/ssl/certs/ca-certificates.crt
+      Header=Authorization: Basic {{ (monitoring_remote_write_user ~ ':' ~ monitoring_remote_write_password) | b64encode }}
+    dest: /etc/systemd/journal-upload.conf.d/mhnet.conf
+    owner: root
+    group: journal-upload
+    mode: "0640"
+  notify: restart journal upload
+
+- name: Ensure journal upload is enabled and started
+  ansible.builtin.systemd_service:
+    name: systemd-journal-upload.service
+    daemon_reload: true
+    enabled: true
+    state: started
+
+# Logs are retained on the hub; keeping the journald default (10% of the
+# filesystem) around locally would store them all twice.
+- name: Cap local journal size
+  ansible.builtin.copy:
+    content: |
+      # Managed by Ansible (roles/monitoring_agent).
+      [Journal]
+      SystemMaxUse={{ monitoring_agent_journal_max_use }}
+    dest: /etc/systemd/journald.conf.d/monitoring.conf
+    owner: root
+    group: root
+    mode: "0644"
+  notify: restart journald

@@ -8,6 +8,20 @@
       tags: firewall
     - role: backup
       tags: backup
+    - role: monitoring_agent
+      tags: monitoring_agent
+
+# After the agents: on a brand-new hub the agents error until the hub is up,
+# then recover on their own (vmagent buffers, journal-upload retries).
+- hosts: monitoring
+  become: true
+  roles:
+    # NAT64 for the IPv4-only endpoints the hub pulls from (github.com
+    # release downloads, grafana.com plugin installs).
+    - role: dns64
+      tags: dns64
+    - role: monitoring_hub
+      tags: monitoring_hub
 
 - hosts: pocket_id
   become: true

@@ -15,6 +15,7 @@ Systems should be secure by default: automated updates, minimal permissions, reg
 - dependencies (e.g. databases) co-located on the same system
 - exposing HTTP services via cloudflared -> no incoming connections required
 - lean setups: prefer built-in (e.g. sqlite) vs separate databases; prefer native installations vs containers
+- Ubuntu (the latest LTS release, currently 26.04 "Resolute Raccoon") is used as the default operating system.
 
 ## Hostnames
 
@@ -27,16 +28,19 @@ ends up hosting more than one instance of the same purpose.
 
 - `inventory/hosts.yml` — fully Ansible Vault-encrypted; hosts, groups, and all
   vars (secrets included) live here
+- `inventory.example.yml` — unencrypted skeleton of the above, documenting
+  every required var; keep in sync when roles gain inventory vars
 - `roles/` — `common`, `firewall`, `backup`, `cloudflared`, `postgresql`,
-  `dns64` apply broadly; `pocket_id`, `miniflux` are per-app
+  `dns64`, `monitoring_agent` apply broadly; `pocket_id`, `miniflux`,
+  `monitoring_hub` are per-app
 - `playbooks/site.yml` — main playbook, run against `all` plus per-app host
   groups; roles are tagged with their own name for selective runs
 - `playbooks/bootstrap.yml` — minimal `common`-only pass for brand-new hosts
 - `.vaultpass` — local vault password file (gitignored), used by
   `ansible.cfg`/`ansible-vault`
 
-See `README.md` for details on the `backup` and `cloudflared` roles
-(onboarding a host, required vars, manual operations).
+See `README.md` for details on the `backup`, `cloudflared` and monitoring
+roles (onboarding a host, required vars, manual operations).
 
 ## Running
 

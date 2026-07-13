@@ -1,0 +1,4 @@
+# {{ ansible_managed }}
+# Agents authenticate via journal-upload's Header= option (systemd >= 258).
+# -enableTCP6 is required on this IPv6-only fleet.
+ARGS="-enableTCP6 -storageDataPath=/var/lib/victorialogs -retentionPeriod={{ monitoring_hub_logs_retention }} -httpListenAddr=:{{ monitoring_logs_port }} -tls -tlsCertFile=/etc/victorialogs/tls/cert.pem -tlsKeyFile=/etc/victorialogs/tls/key.pem -httpAuth.username={{ monitoring_remote_write_user }} -httpAuth.password=file:///etc/victorialogs/httpauth.password"

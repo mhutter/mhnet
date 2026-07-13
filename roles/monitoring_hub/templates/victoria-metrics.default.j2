@@ -1,0 +1,5 @@
+# {{ ansible_managed }}
+# Replaces the package default: same storage path, plus TLS and basic auth
+# because the agents push over the public internet. -enableTCP6 is required
+# on this IPv6-only fleet: VictoriaMetrics listens IPv4-only without it.
+ARGS="-enableTCP6 -storageDataPath=/var/lib/victoria-metrics -retentionPeriod={{ monitoring_hub_metrics_retention }} -httpListenAddr=:{{ monitoring_metrics_port }} -tls -tlsCertFile=/etc/victoria-metrics/tls/cert.pem -tlsKeyFile=/etc/victoria-metrics/tls/key.pem -httpAuth.username={{ monitoring_remote_write_user }} -httpAuth.password=file:///etc/victoria-metrics/httpauth.password"

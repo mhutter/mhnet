@@ -1,0 +1,8 @@
+# Managed by Ansible (roles/monitoring_hub).
+apiVersion: 1
+
+providers:
+  - name: mhnet
+    type: file
+    options:
+      path: /var/lib/grafana/dashboards

@@ -1,0 +1,106 @@
+---
+# Unencrypted skeleton of inventory/hosts.yml, which is fully Ansible
+# Vault-encrypted. It lists every variable the roles consume, so the real
+# inventory can be rebuilt from scratch:
+#
+#   1. Copy this file somewhere private, fill in the values.
+#   2. echo '<vault password>' > .vaultpass          # gitignored
+#   3. Move it to inventory/hosts.yml and immediately
+#      `ansible-vault encrypt inventory/hosts.yml`.
+#
+# Values marked <secret> are generated with `openssl rand -base64 32`
+# unless the comment says otherwise. Hostnames follow <provider>-<purpose>
+# (see CLAUDE.md); example.com stands in for the real zone. Optional knobs
+# (retention, scrape interval, ACME mail, ...) live in roles/*/defaults.
+
+all:
+  vars:
+    # Connection. roles/common hardens sshd to this port and user; new hosts
+    # are bootstrapped first via the bootstrap group below.
+    ssh_port: 22222
+    admin_user: mh
+    admin_uid: 1000
+    ansible_user: "{{ admin_user }}"
+    ansible_port: "{{ ssh_port }}"
+
+    # roles/common: unattended-upgrades reboot window (hosts run UTC).
+    unattended_upgrades_reboot_time: "04:00"
+
+    # roles/backup: B2 bucket; lifecycle must be "keep only the last
+    # version" (see README).
+    backup_b2_bucket: mhnet-restic
+
+    # roles/cloudflared: API token with Account > Cloudflare Tunnel > Edit
+    # plus Zone > DNS > Edit on the zone.
+    cloudflare_account_id: "<cloudflare-account-id>"
+    cloudflare_api_token: "<secret from the Cloudflare dashboard>"
+
+    # Monitoring: every host pushes metrics and logs here.
+    monitoring_ingest_hostname: mon.example.com
+    monitoring_remote_write_password: "<secret>"
+
+  children:
+    # --- one group per app role; every host also needs the per-host
+    # onboarding block: ansible_host (IPv6 literal), the tunnel pair from
+    # the Cloudflare dashboard, and the backup credentials
+    # (scripts/b2-create-restic-key.sh <hostname>; keep a copy of
+    # backup_restic_password outside this repo -- losing it means losing
+    # the backups).
+
+    miniflux:
+      hosts:
+        scw-miniflux:
+          ansible_host: 2001:db8:1::1
+          cloudflared_tunnel_id: "<tunnel id>"
+          cloudflared_tunnel_token: "<secret: tunnel token>"
+          backup_b2_account_id: "<B2 key id>"
+          backup_b2_account_key: "<secret: B2 key>"
+          backup_restic_password: "<secret -- keep an offsite copy>"
+
+          miniflux_app_hostname: miniflux.example.com
+          # OIDC client created in the pocket-id admin UI.
+          miniflux_oauth2_client_id: "<client id>"
+          miniflux_oauth2_client_secret: "<secret: from pocket-id>"
+          miniflux_oauth2_discovery_endpoint: https://id.example.com
+
+    pocket_id:
+      hosts:
+        ncp-pocketid:
+          ansible_host: 2001:db8:2::1
+          cloudflared_tunnel_id: "<tunnel id>"
+          cloudflared_tunnel_token: "<secret: tunnel token>"
+          backup_b2_account_id: "<B2 key id>"
+          backup_b2_account_key: "<secret: B2 key>"
+          backup_restic_password: "<secret -- keep an offsite copy>"
+
+          pocket_id_app_hostname: id.example.com
+          pocket_id_encryption_key: "<secret>"
+
+    monitoring:
+      hosts:
+        hbc-monitoring:
+          ansible_host: 2001:db8:3::1
+          cloudflared_tunnel_id: "<tunnel id>"
+          cloudflared_tunnel_token: "<secret: tunnel token>"
+          backup_b2_account_id: "<B2 key id>"
+          backup_b2_account_key: "<secret: B2 key>"
+          backup_restic_password: "<secret -- keep an offsite copy>"
+
+          monitoring_grafana_hostname: grafana.example.com
+          grafana_admin_password: "<secret>"
+          # Ingest ports open to the fleet only. Sources must resolve to
+          # IPv6 literals -- list them explicitly if any ansible_host is a
+          # DNS name.
+          firewall_allow_tcp_from:
+            - ports: [8428, 9428]
+              sources: "{{ groups['all'] | map('extract', hostvars, 'ansible_host') | list }}"
+
+    # Brand-new hosts go here temporarily for `just bootstrap`: cloud images
+    # answer as root (or ubuntu) on port 22 until roles/common hardens sshd.
+    # Add the host to its app group at the same time, run the bootstrap,
+    # then remove it from this group.
+    bootstrap:
+      hosts: {}
+      vars:
+        ansible_user: root
+        ansible_port: 22

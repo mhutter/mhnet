@@ -1,0 +1,15 @@
+# {{ ansible_managed }}
+global:
+  scrape_interval: {{ monitoring_scrape_interval }}
+
+# The instance label defaults to the target address, which would collide
+# across hosts on [::1]:9100; pin it to the inventory hostname instead.
+scrape_configs:
+- job_name: node
+  static_configs:
+  - targets: ["[::1]:9100"]
+    labels:
+      instance: {{ inventory_hostname }}
+{% if monitoring_agent_extra_scrape_configs %}
+{{ monitoring_agent_extra_scrape_configs | to_nice_yaml(indent=2) }}
+{% endif %}

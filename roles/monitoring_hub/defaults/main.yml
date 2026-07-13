@@ -1,0 +1,28 @@
+---
+# Required from the inventory (no usable defaults):
+# monitoring_ingest_hostname -- public DNS name of the ingest endpoints,
+#   e.g. mon.example.com (unproxied AAAA, created by this role)
+# monitoring_remote_write_password -- basic auth password for the metrics
+#   API (openssl rand -base64 32); shared with the agents
+# monitoring_grafana_hostname -- public hostname for the Grafana UI
+# grafana_admin_password -- initial Grafana admin password
+
+# Shared with monitoring_agent; keep the two roles' defaults in sync.
+monitoring_remote_write_user: monitoring
+monitoring_metrics_port: 8428
+monitoring_logs_port: 9428
+monitoring_scrape_interval: 30s
+
+# VictoriaMetrics interprets a bare number as months.
+monitoring_hub_metrics_retention: "12"
+monitoring_hub_logs_retention: 90d
+
+monitoring_hub_victorialogs_version: v1.51.0
+monitoring_hub_victorialogs_arch: "{{ {'x86_64': 'amd64', 'aarch64': 'arm64'}[ansible_facts.architecture] }}"
+monitoring_hub_victorialogs_dir: "/usr/local/lib/victorialogs/{{ monitoring_hub_victorialogs_version }}"
+
+# AAAA record target for the ingest hostname.
+monitoring_hub_ipv6: "{{ ansible_facts.default_ipv6.address }}"
+
+# ACME account mail for expiry notices; empty registers without one.
+monitoring_hub_acme_email: ""

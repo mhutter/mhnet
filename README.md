@@ -1,5 +1,59 @@
 # mhnet Ansible
 
+## Monitoring
+
+Push-based monitoring: every host (`monitoring_agent` role) runs
+node_exporter bound to localhost, vmagent pushing its metrics to the hub via
+Prometheus remote_write, and systemd-journal-upload streaming the journal to
+VictoriaLogs. The hub (`monitoring_hub` role, host group `monitoring`) runs
+VictoriaMetrics, VictoriaLogs and Grafana, with datasources and a Node
+Exporter Full dashboard provisioned; the Grafana UI is exposed through the
+host's Cloudflare tunnel. Alerting is Grafana's built-in one — contact
+points and alert rules are configured in the UI.
+
+The hub is the one deliberate exception to the no-inbound rule: its two
+ingest ports (8428 metrics, 9428 logs) serve TLS (Let's Encrypt via
+Cloudflare DNS-01, auto-renewed by certbot.timer) with basic auth, and are
+reachable only from the fleet's addresses via `firewall_allow_tcp_from`.
+vmagent authenticates natively; journal-upload sends the credential through
+its `Header=` option.
+
+Onboarding the hub (once):
+
+1. Provision a VPS (~1 GB RAM), add it to the `monitoring` group in the
+   vaulted inventory, and onboard it like any host (bootstrap, backup vars,
+   cloudflared tunnel vars). The group also gets the `dns64` role: GitHub
+   (VictoriaLogs downloads) and grafana.com (plugin installs) are IPv4-only.
+2. Vars at the `all` level: `monitoring_ingest_hostname` (e.g.
+   `mon.example.com`) and `monitoring_remote_write_password`
+   (`openssl rand -base64 32`).
+3. Vars on the hub: `monitoring_grafana_hostname`, `grafana_admin_password`,
+   and the ingest firewall openings — sources must be literal IPv6 addresses
+   (use an explicit list if `ansible_host` values are DNS names):
+
+   ```yaml
+   firewall_allow_tcp_from:
+     - ports: [8428, 9428]
+       sources: "{{ groups['all'] | map('extract', hostvars, 'ansible_host') | list }}"
+   ```
+
+Agents need no per-host vars. App roles can feed their own metrics endpoint
+into vmagent via `monitoring_agent_extra_scrape_configs`.
+
+Operational notes:
+
+- The roles need `victoria-metrics` ≥ 1.112 (Ubuntu 26.04 universe ships
+  1.112) for `-httpAuth.password=file:///...`, and systemd ≥ 258 (26.04
+  ships 259) for journal-upload's `Header=` auth.
+- VictoriaLogs is not packaged in Debian; the role installs a pinned static
+  binary — bump `monitoring_hub_victorialogs_version` and re-run to update.
+- Backups: a pre-hook snapshots VictoriaMetrics (restore: restic-restore the
+  snapshot and copy its contents into an empty `/var/lib/victoria-metrics`)
+  and dumps Grafana's SQLite db. VictoriaLogs data is deliberately not
+  backed up.
+- Retention defaults: metrics 12 months, logs 90 days
+  (`monitoring_hub_metrics_retention` / `monitoring_hub_logs_retention`).
+
 ## Backups
 
 The `backup` role backs up every host to the `mhnet-restic` B2 bucket with

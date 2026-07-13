@@ -1,0 +1,29 @@
+#!/usr/bin/env bash
+# {{ ansible_managed }}
+# Snapshot VictoriaMetrics (hardlink-based, near-free) so restic never sees
+# the live TSDB, and produce a consistent copy of the Grafana SQLite db.
+# Only the freshly created snapshot is kept; it lingers until the next
+# backup, which costs nothing beyond blocks compacted away in between.
+set -euo pipefail
+
+# Loopback with -k: no dependency on DNS or certificate validity. The
+# credentials go through --config, keeping them out of curl's argv. A failed
+# snapshot must not stop the host's other backups; the previous (stale but
+# valid) snapshot is backed up instead.
+vm() {
+  curl -fsSk -X POST "https://127.0.0.1:{{ monitoring_metrics_port }}/snapshot/$1" \
+    --config <(printf 'user = "%s"\n' \
+      '{{ monitoring_remote_write_user }}:{{ monitoring_remote_write_password }}') \
+    > /dev/null
+}
+if vm delete_all; then
+  vm create
+else
+  echo "warning: VictoriaMetrics unreachable, snapshot not refreshed" >&2
+fi
+
+# VACUUM INTO refuses to overwrite, so remove the previous dump first; the
+# timeout rides out concurrent Grafana write transactions.
+dst=/var/backups/grafana/grafana.db
+rm -f "$dst"
+sqlite3 -cmd '.timeout 5000' /var/lib/grafana/grafana.db "VACUUM INTO '$dst'"

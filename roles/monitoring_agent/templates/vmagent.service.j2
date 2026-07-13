@@ -1,0 +1,19 @@
+# {{ ansible_managed }}
+# The victoria-metrics Debian package ships the vmagent binary without a
+# unit; this mirrors the package's victoria-metrics.service.
+
+[Unit]
+Description=vmagent metrics collector
+Documentation=https://docs.victoriametrics.com/victoriametrics/vmagent/
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+User=vmagent
+EnvironmentFile=/etc/default/vmagent
+ExecStart=/usr/bin/vmagent $ARGS
+Restart=on-failure
+RestartSec=5s
+
+[Install]
+WantedBy=multi-user.target

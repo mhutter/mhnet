@@ -1,0 +1,378 @@
+---
+# Central monitoring hub: VictoriaMetrics (metrics), VictoriaLogs (logs),
+# Grafana (UI). Agents push over the public internet, so this host is the
+# one deliberate exception to the no-inbound rule: the two ingest ports
+# serve TLS (Let's Encrypt via DNS-01) with basic auth and must be
+# source-restricted to the fleet through firewall_allow_tcp_from in the
+# inventory.
+
+- name: Ensure monitoring hub variables are configured
+  ansible.builtin.assert:
+    that:
+      - monitoring_ingest_hostname is defined
+      - monitoring_remote_write_password is defined
+      - monitoring_grafana_hostname is defined
+      - grafana_admin_password is defined
+      - cloudflare_api_token is defined
+    fail_msg: >-
+      Missing monitoring hub variables for {{ inventory_hostname }}. Add
+      monitoring_ingest_hostname, monitoring_grafana_hostname,
+      monitoring_remote_write_password and grafana_admin_password (openssl
+      rand -base64 32 each) to the vaulted inventory.
+
+- name: "Configure DNS record for {{ monitoring_ingest_hostname }}"
+  ansible.builtin.include_role:
+    name: cloudflared
+    tasks_from: dns_record
+  vars:
+    cloudflared_dns_record: "{{ monitoring_ingest_hostname }}"
+    cloudflared_dns_type: AAAA
+    cloudflared_dns_value: "{{ monitoring_hub_ipv6 }}"
+
+# --- VictoriaMetrics (installed early: the TLS deploy hook needs its group) ---
+
+- name: Install VictoriaMetrics
+  ansible.builtin.apt:
+    name: victoria-metrics
+    state: present
+
+- name: Create victorialogs system user
+  ansible.builtin.user:
+    name: victorialogs
+    system: true
+    home: /var/lib/victorialogs
+    create_home: false
+    shell: /usr/sbin/nologin
+
+# --- TLS certificate for the ingest endpoints ---
+
+- name: Install certbot with the Cloudflare DNS plugin
+  ansible.builtin.apt:
+    name:
+      - certbot
+      - python3-certbot-dns-cloudflare
+    state: present
+
+- name: Configure certbot Cloudflare credentials
+  ansible.builtin.template:
+    src: certbot-cloudflare.ini.j2
+    dest: /etc/letsencrypt/cloudflare.ini
+    owner: root
+    group: root
+    mode: "0600"
+
+- name: Create TLS certificate directories
+  ansible.builtin.file:
+    path: "{{ item }}"
+    state: directory
+    owner: root
+    group: root
+    mode: "0755"
+  loop:
+    - /etc/victoria-metrics/tls
+    - /etc/victorialogs/tls
+
+# The certbot package ships no renewal-hooks tree; certbot itself creates it
+# on first invocation, which is after the hook must be in place.
+- name: Create certbot deploy hook directory
+  ansible.builtin.file:
+    path: /etc/letsencrypt/renewal-hooks/deploy
+    state: directory
+    owner: root
+    group: root
+    mode: "0755"
+
+# Both daemons re-read the cert files every second, so the hook only copies;
+# no restarts needed on renewal.
+- name: Install certificate deploy hook
+  ansible.builtin.copy:
+    src: tls-deploy-hook.sh
+    dest: /etc/letsencrypt/renewal-hooks/deploy/50-monitoring-tls
+    owner: root
+    group: root
+    mode: "0755"
+
+# Renewal is handled by the certbot.timer the package enables.
+- name: "Obtain Let's Encrypt certificate for {{ monitoring_ingest_hostname }}"
+  ansible.builtin.command: >-
+    certbot certonly --non-interactive --agree-tos
+    {% if monitoring_hub_acme_email %}--email {{ monitoring_hub_acme_email }}{% else %}--register-unsafely-without-email{% endif %}
+    --dns-cloudflare
+    --dns-cloudflare-credentials /etc/letsencrypt/cloudflare.ini
+    --dns-cloudflare-propagation-seconds 30
+    --cert-name {{ monitoring_ingest_hostname }}
+    --domain {{ monitoring_ingest_hostname }}
+  args:
+    creates: "/etc/letsencrypt/live/{{ monitoring_ingest_hostname }}/fullchain.pem"
+
+# Deploy hooks only fire on issuance/renewal; cover the case where the cert
+# already existed before the hook was installed.
+- name: Deploy the certificate for the monitoring daemons
+  ansible.builtin.command: /etc/letsencrypt/renewal-hooks/deploy/50-monitoring-tls
+  environment:
+    RENEWED_LINEAGE: "/etc/letsencrypt/live/{{ monitoring_ingest_hostname }}"
+  args:
+    creates: /etc/victoria-metrics/tls/cert.pem
+
+# --- VictoriaMetrics configuration ---
+
+- name: Configure VictoriaMetrics API password
+  ansible.builtin.copy:
+    content: "{{ monitoring_remote_write_password }}"
+    dest: /etc/victoria-metrics/httpauth.password
+    owner: root
+    group: _victoria-metrics
+    mode: "0640"
+
+- name: Configure VictoriaMetrics arguments
+  ansible.builtin.template:
+    src: victoria-metrics.default.j2
+    dest: /etc/default/victoria-metrics
+    owner: root
+    group: root
+    mode: "0644"
+  notify: restart victoria-metrics
+
+# masked covers a host that ran monitoring_agent as a non-hub before being
+# moved into the monitoring group.
+- name: Ensure VictoriaMetrics is enabled and started
+  ansible.builtin.systemd_service:
+    name: victoria-metrics.service
+    masked: false
+    enabled: true
+    state: started
+
+# Without this, a first run leaves the package's plain-HTTP, unauthenticated
+# server up (the restart handler would only fire at the end of the play)
+# while the firewall already admits the fleet.
+- name: Apply the VictoriaMetrics configuration before continuing
+  ansible.builtin.meta: flush_handlers
+
+# --- VictoriaLogs ---
+# Not packaged in Debian; a pinned static binary from the GitHub releases.
+# Updates happen by bumping monitoring_hub_victorialogs_version, not through
+# unattended-upgrades.
+
+- name: Create VictoriaLogs data directory
+  ansible.builtin.file:
+    path: /var/lib/victorialogs
+    state: directory
+    owner: victorialogs
+    group: victorialogs
+    mode: "0750"
+
+- name: Configure VictoriaLogs API password
+  ansible.builtin.copy:
+    content: "{{ monitoring_remote_write_password }}"
+    dest: /etc/victorialogs/httpauth.password
+    owner: root
+    group: victorialogs
+    mode: "0640"
+  notify: restart victorialogs
+
+- name: Create VictoriaLogs install directory
+  ansible.builtin.file:
+    path: "{{ monitoring_hub_victorialogs_dir }}"
+    state: directory
+    owner: root
+    group: root
+    mode: "0755"
+
+- name: "Download VictoriaLogs {{ monitoring_hub_victorialogs_version }}"
+  ansible.builtin.unarchive:
+    src: "https://github.com/VictoriaMetrics/VictoriaLogs/releases/download/{{ monitoring_hub_victorialogs_version }}/victoria-logs-linux-{{ monitoring_hub_victorialogs_arch }}-{{ monitoring_hub_victorialogs_version }}.tar.gz"
+    remote_src: true
+    dest: "{{ monitoring_hub_victorialogs_dir }}"
+    creates: "{{ monitoring_hub_victorialogs_dir }}/victoria-logs-prod"
+
+- name: Link the VictoriaLogs binary
+  ansible.builtin.file:
+    src: "{{ monitoring_hub_victorialogs_dir }}/victoria-logs-prod"
+    dest: /usr/local/bin/victoria-logs
+    state: link
+  notify: restart victorialogs
+
+- name: Find superseded VictoriaLogs versions
+  ansible.builtin.find:
+    paths: /usr/local/lib/victorialogs
+    file_type: directory
+    excludes: "{{ monitoring_hub_victorialogs_version }}"
+  register: monitoring_hub_victorialogs_old
+
+- name: Remove superseded VictoriaLogs versions
+  ansible.builtin.file:
+    path: "{{ item.path }}"
+    state: absent
+  loop: "{{ monitoring_hub_victorialogs_old.files }}"
+  loop_control:
+    label: "{{ item.path }}"
+
+- name: Configure VictoriaLogs arguments
+  ansible.builtin.template:
+    src: victorialogs.default.j2
+    dest: /etc/default/victorialogs
+    owner: root
+    group: root
+    mode: "0644"
+  notify: restart victorialogs
+
+- name: Install VictoriaLogs systemd unit
+  ansible.builtin.template:
+    src: victorialogs.service.j2
+    dest: /etc/systemd/system/victorialogs.service
+    owner: root
+    group: root
+    mode: "0644"
+  notify: restart victorialogs
+
+- name: Ensure VictoriaLogs is enabled and started
+  ansible.builtin.systemd_service:
+    name: victorialogs.service
+    daemon_reload: true
+    enabled: true
+    state: started
+
+# --- Grafana ---
+
+- name: Configure Grafana repository
+  ansible.builtin.deb822_repository:
+    name: grafana
+    uris: https://apt.grafana.com
+    types: deb
+    suites: stable
+    components: main
+    signed_by: https://apt.grafana.com/gpg.key
+
+- name: Install Grafana
+  ansible.builtin.apt:
+    name: grafana
+    state: present
+    update_cache: true
+
+# admin_password only seeds the admin account on first startup.
+- name: Configure Grafana
+  community.general.ini_file:
+    path: /etc/grafana/grafana.ini
+    section: "{{ item.section }}"
+    option: "{{ item.option }}"
+    value: "{{ item.value }}"
+    mode: "0640"
+  loop:
+    - { section: server, option: http_addr, value: "127.0.0.1" }
+    # root_url makes links in alert notifications point at the public UI
+    # instead of http://localhost:3000.
+    - { section: server, option: root_url, value: "https://{{ monitoring_grafana_hostname }}" }
+    - { section: security, option: admin_password, value: "{{ grafana_admin_password }}" }
+    - { section: analytics, option: reporting_enabled, value: "false" }
+  loop_control:
+    label: "{{ item.section }}/{{ item.option }}"
+  notify: restart grafana
+
+# The CLI needs --homepath to find its config defaults, and --pluginsDir
+# because those defaults point inside the homepath rather than at the dir
+# grafana-server actually loads plugins from.
+- name: Install the VictoriaLogs Grafana datasource plugin
+  ansible.builtin.command: >-
+    grafana cli --homepath /usr/share/grafana
+    --pluginsDir /var/lib/grafana/plugins
+    plugins install victoriametrics-logs-datasource
+  args:
+    creates: /var/lib/grafana/plugins/victoriametrics-logs-datasource
+  notify: restart grafana
+
+- name: Provision Grafana datasources
+  ansible.builtin.template:
+    src: grafana-datasources.yml.j2
+    dest: /etc/grafana/provisioning/datasources/mhnet.yml
+    owner: root
+    group: grafana
+    mode: "0640"
+  notify: restart grafana
+
+- name: Create Grafana dashboards directory
+  ansible.builtin.file:
+    path: /var/lib/grafana/dashboards
+    state: directory
+    owner: root
+    group: grafana
+    mode: "0755"
+
+- name: Install Grafana dashboards
+  ansible.builtin.copy:
+    src: dashboards/
+    dest: /var/lib/grafana/dashboards/
+    owner: root
+    group: grafana
+    mode: "0644"
+
+- name: Provision Grafana dashboards
+  ansible.builtin.copy:
+    src: grafana-dashboards.yml
+    dest: /etc/grafana/provisioning/dashboards/mhnet.yml
+    owner: root
+    group: grafana
+    mode: "0640"
+  notify: restart grafana
+
+- name: Ensure Grafana is enabled and started
+  ansible.builtin.systemd_service:
+    name: grafana-server.service
+    enabled: true
+    state: started
+
+# --- Backups ---
+
+- name: Ensure backup drop-in directories exist
+  ansible.builtin.include_role:
+    name: backup
+    tasks_from: dropin_dirs
+
+- name: Install backup hook dependencies
+  ansible.builtin.apt:
+    name:
+      - sqlite3 # Grafana db dump
+      - curl # VictoriaMetrics snapshot API
+    state: present
+
+- name: Create Grafana dump directory
+  ansible.builtin.file:
+    path: /var/backups/grafana
+    state: directory
+    owner: root
+    group: root
+    mode: "0700"
+
+# Contains the API password, hence 0700 (unlike the other pre-hooks).
+- name: Install monitoring pre-backup hook
+  ansible.builtin.template:
+    src: backup-pre.sh.j2
+    dest: /etc/backup/pre.d/50-monitoring.sh
+    owner: root
+    group: root
+    mode: "0700"
+
+# VictoriaLogs has no snapshot mechanism and its data is the least critical;
+# it is deliberately not backed up.
+- name: Register monitoring backup paths
+  ansible.builtin.copy:
+    content: |
+      /var/lib/victoria-metrics/snapshots
+      /var/backups/grafana
+    dest: /etc/backup/paths.d/50-monitoring.txt
+    owner: root
+    group: root
+    mode: "0644"
+
+# --- Cloudflare tunnel ---
+
+- name: Install the Cloudflare tunnel connector
+  ansible.builtin.include_role:
+    name: cloudflared
+
+- name: Expose Grafana through the Cloudflare tunnel
+  ansible.builtin.include_role:
+    name: cloudflared
+    tasks_from: expose
+  vars:
+    cloudflared_expose_hostname: "{{ monitoring_grafana_hostname }}"
+    cloudflared_expose_service: "http://localhost:3000"

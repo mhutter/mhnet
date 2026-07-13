@@ -1,0 +1,29 @@
+---
+# Required from the inventory (no usable defaults):
+# monitoring_ingest_hostname -- public DNS name of the hub's ingest endpoints
+# monitoring_remote_write_password -- basic auth password for the metrics API
+
+# Shared with monitoring_hub; keep the two roles' defaults in sync.
+monitoring_remote_write_user: monitoring
+monitoring_metrics_port: 8428
+monitoring_logs_port: 9428
+monitoring_scrape_interval: 30s
+
+# Whether this host runs the hub's VictoriaMetrics server (and so must not
+# have it masked).
+monitoring_agent_is_hub: "{{ 'monitoring' in group_names }}"
+
+# Cap for vmagent's on-disk buffer while the hub is unreachable.
+monitoring_agent_max_buffer: 512MiB
+
+# Cap for the local journal; logs live on the hub now, locally the journal
+# only needs to buffer hub outages (journal-upload resumes from its cursor).
+monitoring_agent_journal_max_use: 500M
+
+# Extra entries for vmagent's scrape_configs, e.g. an app's metrics endpoint:
+#   monitoring_agent_extra_scrape_configs:
+#     - job_name: miniflux
+#       static_configs:
+#         - targets: ["127.0.0.1:8080"]
+#           labels: { instance: "{{ inventory_hostname }}" }
+monitoring_agent_extra_scrape_configs: []

@@ -19,17 +19,7 @@
     state: present
 
 - name: Create backup configuration directories
-  ansible.builtin.file:
-    path: "{{ item }}"
-    state: directory
-    owner: root
-    group: root
-    mode: "0755"
-  loop:
-    - /etc/backup
-    - /etc/backup/paths.d
-    - /etc/backup/exclude.d
-    - /etc/backup/pre.d
+  ansible.builtin.include_tasks: dropin_dirs.yml
 
 - name: Create restic cache directory
   ansible.builtin.file:

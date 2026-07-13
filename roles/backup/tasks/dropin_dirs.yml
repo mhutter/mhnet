@@ -1,0 +1,17 @@
+---
+# Creates the backup drop-in directories. Included from app roles
+# (tasks_from: dropin_dirs) before they register paths or hooks, so a
+# standalone app-tag run on a fresh host does not fail; the backup role
+# itself includes it too.
+- name: Ensure backup drop-in directories exist
+  ansible.builtin.file:
+    path: "{{ item }}"
+    state: directory
+    owner: root
+    group: root
+    mode: "0755"
+  loop:
+    - /etc/backup
+    - /etc/backup/paths.d
+    - /etc/backup/exclude.d
+    - /etc/backup/pre.d

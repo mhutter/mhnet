@@ -31,6 +31,10 @@ table inet filter {
 
         udp dport { {{ firewall_allow_udp_ports | join(", ") }} } accept
 {% endif %}
+{% for allow in firewall_allow_tcp_from %}
+
+        ip6 saddr { {{ allow.sources | join(", ") }} } tcp dport { {{ allow.ports | join(", ") }} } accept
+{% endfor %}
     }
 
     chain forward {

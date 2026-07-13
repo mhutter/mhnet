@@ -1,0 +1,30 @@
+---
+# Upserts one Cloudflare DNS record. Include from a role:
+#
+#   - name: Configure DNS record for my-host
+#     ansible.builtin.include_role:
+#       name: cloudflared
+#       tasks_from: dns_record
+#     vars:
+#       cloudflared_dns_record: mon.example.com
+#       cloudflared_dns_type: AAAA
+#       cloudflared_dns_value: "2001:db8::1"
+#
+# The zone defaults to everything after the first label (override with
+# cloudflared_dns_zone); records are unproxied unless cloudflared_dns_proxied
+# is set.
+
+- name: "Configure DNS record for {{ cloudflared_dns_record }}"
+  community.general.cloudflare_dns:
+    zone: "{{ cloudflared_dns_zone }}"
+    record: "{{ cloudflared_dns_record }}"
+    type: "{{ cloudflared_dns_type }}"
+    value: "{{ cloudflared_dns_value }}"
+    proxied: "{{ cloudflared_dns_proxied }}"
+    ttl: 1
+    solo: true
+    api_token: "{{ cloudflare_api_token }}"
+    state: present
+  delegate_to: localhost
+  retries: 3
+  become: false

@@ -11,3 +11,8 @@
 # DNS zone containing the exposed hostname. The default assumes a single
 # subdomain level (id.mhnet.app -> mhnet.app); override for deeper ones.
 cloudflared_expose_zone: "{{ cloudflared_expose_hostname.split('.', 1) | last }}"
+
+# Parameters for `tasks_from: dns_record` (set via include_role vars):
+# cloudflared_dns_record, cloudflared_dns_type, cloudflared_dns_value
+cloudflared_dns_zone: "{{ cloudflared_dns_record.split('.', 1) | last }}"
+cloudflared_dns_proxied: false

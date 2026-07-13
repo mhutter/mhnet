@@ -71,16 +71,10 @@
 # The dashboard's "public hostname" flow creates this record implicitly;
 # via the API it is a separate concern, so manage it explicitly.
 - name: "Configure tunnel DNS record for {{ cloudflared_expose_hostname }}"
-  community.general.cloudflare_dns:
-    zone: "{{ cloudflared_expose_zone }}"
-    record: "{{ cloudflared_expose_hostname }}"
-    type: CNAME
-    value: "{{ cloudflared_tunnel_id }}.cfargotunnel.com"
-    proxied: true
-    ttl: 1
-    solo: true
-    api_token: "{{ cloudflare_api_token }}"
-    state: present
-  delegate_to: localhost
-  retries: 3
-  become: false
+  ansible.builtin.include_tasks: dns_record.yml
+  vars:
+    cloudflared_dns_zone: "{{ cloudflared_expose_zone }}"
+    cloudflared_dns_record: "{{ cloudflared_expose_hostname }}"
+    cloudflared_dns_type: CNAME
+    cloudflared_dns_value: "{{ cloudflared_tunnel_id }}.cfargotunnel.com"
+    cloudflared_dns_proxied: true

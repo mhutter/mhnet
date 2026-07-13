@@ -2,3 +2,11 @@
 firewall_allow_tcp_ports:
   - "{{ ssh_port }}"
 firewall_allow_udp_ports: []
+
+# TCP ports reachable only from specific source addresses, e.g. the
+# monitoring hub's ingest ports restricted to the fleet. Sources must be
+# IPv6 literals (the fleet is IPv6-only; the template emits ip6 saddr):
+#   firewall_allow_tcp_from:
+#     - ports: [8428, 9428]
+#       sources: ["2001:db8::1", "2001:db8::2"]
+firewall_allow_tcp_from: []

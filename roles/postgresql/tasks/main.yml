@@ -19,18 +19,10 @@
 
 # --- Backups ---
 
-# Normally created by the backup role; kept here too so a standalone
-# app-tag run on a fresh host does not fail.
 - name: Ensure backup drop-in directories exist
-  ansible.builtin.file:
-    path: "{{ item }}"
-    state: directory
-    owner: root
-    group: root
-    mode: "0755"
-  loop:
-    - /etc/backup/paths.d
-    - /etc/backup/pre.d
+  ansible.builtin.include_role:
+    name: backup
+    tasks_from: dropin_dirs
 
 # root-owned: the pre-backup hook runs as root, and this keeps the dumps
 # unreadable to service users.

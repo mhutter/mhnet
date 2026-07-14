@@ -23,4 +23,6 @@ HealthStartPeriod=10s
 Restart=always
 
 [Install]
-WantedBy=multi-user.target
+# This is a user unit: user managers boot to default.target
+# (multi-user.target only exists in the system instance).
+WantedBy=default.target

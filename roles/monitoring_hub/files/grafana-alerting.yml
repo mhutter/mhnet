@@ -37,6 +37,34 @@ groups:
               conditions:
                 - evaluator: { type: gt, params: [0] }
 
+      - uid: mhnet-conffile-leftovers
+        title: ConffileLeftovers
+        condition: B
+        for: 0s
+        noDataState: NoData
+        execErrState: Error
+        annotations:
+          summary: >-
+            {{ $labels.instance }} has dpkg conffile leftovers under /etc;
+            diff each *.dpkg-dist/-new/-old/*.ucf-dist against the kept file
+            and delete it once reconciled (see README).
+        data:
+          - refId: A
+            relativeTimeRange: { from: 600, to: 0 }
+            datasourceUid: victoriametrics
+            model:
+              refId: A
+              instant: true
+              expr: sum by (instance) (dpkg_conffile_leftovers)
+          - refId: B
+            datasourceUid: __expr__
+            model:
+              refId: B
+              type: threshold
+              expression: A
+              conditions:
+                - evaluator: { type: gt, params: [0] }
+
       # Textfile metrics keep reporting their last value if their timer
       # breaks; the dpkg timer is the slowest at daily, so anything older
       # than 25h means the metric can no longer be trusted.

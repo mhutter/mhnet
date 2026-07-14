@@ -53,6 +53,12 @@ Operational notes:
   backed up.
 - Retention defaults: metrics 12 months, logs 90 days
   (`monitoring_hub_metrics_retention` / `monitoring_hub_logs_retention`).
+- Config drift: dpkg never prompts for conffile changes (`force-confold`,
+  roles/common) and keeps the maintainer's version as `*.dpkg-dist`. A daily
+  timer on every agent exports `dpkg_conffile_leftovers` (count of
+  `*.dpkg-dist`/`*.dpkg-new`/`*.dpkg-old`/`*.ucf-dist` under `/etc`) via the
+  node_exporter textfile collector; alert on `> 0` in Grafana, then diff the
+  leftover against the kept file and delete it once reconciled.
 
 ## Backups
 

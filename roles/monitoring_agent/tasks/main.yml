@@ -34,11 +34,13 @@
 
 # --- node_exporter ---
 
-- name: Bind node_exporter to localhost
+# The textfile directory is spelled out rather than relying on the package
+# default so the metric scripts below have a stable, known path.
+- name: Configure node_exporter
   ansible.builtin.copy:
     content: |
       # Managed by Ansible (roles/monitoring_agent).
-      ARGS="--web.listen-address=[::1]:9100"
+      ARGS="--web.listen-address=[::1]:9100 --collector.textfile.directory=/var/lib/prometheus/node-exporter"
     dest: /etc/default/prometheus-node-exporter
     owner: root
     group: root
@@ -50,6 +52,71 @@
     name: prometheus-node-exporter.service
     enabled: true
     state: started
+
+# --- conffile drift metric ---
+
+- name: Ensure the textfile collector directory exists
+  ansible.builtin.file:
+    path: /var/lib/prometheus/node-exporter
+    state: directory
+    owner: root
+    group: prometheus
+    mode: "0775"
+
+- name: Install the conffile leftover metric script
+  ansible.builtin.copy:
+    src: dpkg-conffile-metric
+    dest: /usr/local/bin/dpkg-conffile-metric
+    owner: root
+    group: root
+    mode: "0755"
+
+- name: Install the conffile leftover metric units
+  ansible.builtin.copy:
+    content: "{{ item.content }}"
+    dest: "/etc/systemd/system/{{ item.name }}"
+    owner: root
+    group: root
+    mode: "0644"
+  loop:
+    - name: dpkg-conffile-metric.service
+      content: |
+        # Managed by Ansible (roles/monitoring_agent).
+        [Unit]
+        Description=Export leftover dpkg conffile count for node_exporter
+
+        [Service]
+        Type=oneshot
+        ExecStart=/usr/local/bin/dpkg-conffile-metric
+    - name: dpkg-conffile-metric.timer
+      content: |
+        # Managed by Ansible (roles/monitoring_agent).
+        [Unit]
+        Description=Daily export of leftover dpkg conffile count
+
+        [Timer]
+        OnCalendar=daily
+        RandomizedDelaySec=1h
+        Persistent=true
+
+        [Install]
+        WantedBy=timers.target
+  loop_control:
+    label: "{{ item.name }}"
+
+- name: Enable the conffile leftover metric timer
+  ansible.builtin.systemd_service:
+    name: dpkg-conffile-metric.timer
+    daemon_reload: true
+    enabled: true
+    state: started
+
+# The timer only fires daily; produce the metric right away so a fresh host
+# does not report "no data" until tomorrow.
+- name: Export the conffile leftover metric once
+  ansible.builtin.command: /usr/local/bin/dpkg-conffile-metric
+  args:
+    creates: /var/lib/prometheus/node-exporter/dpkg_conffiles.prom
 
 # --- vmagent ---
 

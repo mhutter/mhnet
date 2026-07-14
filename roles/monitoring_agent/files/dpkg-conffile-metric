@@ -1,0 +1,18 @@
+#!/bin/sh
+# Managed by Ansible (roles/monitoring_agent).
+# dpkg's force-confold (roles/common) keeps the local conffile and drops the
+# maintainer's new version next to it as *.dpkg-dist; count such leftovers
+# and expose the number through node_exporter's textfile collector so config
+# drift surfaces in Grafana instead of sitting silently on disk.
+set -eu
+
+dir=/var/lib/prometheus/node-exporter
+count=$(find /etc \( -name '*.dpkg-dist' -o -name '*.dpkg-new' \
+	-o -name '*.dpkg-old' -o -name '*.ucf-dist' \) | wc -l)
+
+cat >"$dir/dpkg_conffiles.prom.$$" <<EOF
+# HELP dpkg_conffile_leftovers Conffile artifacts under /etc awaiting review (*.dpkg-dist, *.dpkg-new, *.dpkg-old, *.ucf-dist).
+# TYPE dpkg_conffile_leftovers gauge
+dpkg_conffile_leftovers $count
+EOF
+mv "$dir/dpkg_conffiles.prom.$$" "$dir/dpkg_conffiles.prom"

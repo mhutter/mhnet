@@ -1,0 +1,23 @@
+#!/bin/sh
+# Managed by Ansible (roles/monitoring_agent).
+# node_exporter's systemd collector was by far its most expensive one, and
+# the only signal of interest in it was "which units have failed"; export
+# exactly that through the textfile collector instead, refreshed by a timer.
+set -eu
+
+dir=/var/lib/prometheus/node-exporter
+
+{
+	echo '# HELP systemd_failed_unit Systemd unit in the failed state.'
+	echo '# TYPE systemd_failed_unit gauge'
+	count=0
+	for unit in $(systemctl list-units --state=failed --plain --no-legend \
+		| awk '{print $1}'); do
+		echo "systemd_failed_unit{unit=\"$unit\"} 1"
+		count=$((count + 1))
+	done
+	echo '# HELP systemd_failed_units_total Number of systemd units in the failed state.'
+	echo '# TYPE systemd_failed_units_total gauge'
+	echo "systemd_failed_units_total $count"
+} >"$dir/failed_units.prom.$$"
+mv "$dir/failed_units.prom.$$" "$dir/failed_units.prom"

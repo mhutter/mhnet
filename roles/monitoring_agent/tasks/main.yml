@@ -40,7 +40,7 @@
   ansible.builtin.copy:
     content: |
       # Managed by Ansible (roles/monitoring_agent).
-      ARGS="--web.listen-address=[::1]:9100 --collector.textfile.directory=/var/lib/prometheus/node-exporter{% for collector in monitoring_agent_disabled_collectors %} --no-collector.{{ collector }}{% endfor %}"
+      ARGS="--web.listen-address=[::1]:9100 --collector.disable-defaults --collector.textfile.directory=/var/lib/prometheus/node-exporter{% for collector in monitoring_agent_enabled_collectors %} --collector.{{ collector }}{% endfor %}"
     dest: /etc/default/prometheus-node-exporter
     owner: root
     group: root
@@ -53,7 +53,7 @@
     enabled: true
     state: started
 
-# --- conffile drift metric ---
+# --- textfile metrics ---
 
 - name: Ensure the textfile collector directory exists
   ansible.builtin.file:
@@ -63,15 +63,18 @@
     group: prometheus
     mode: "0775"
 
-- name: Install the conffile leftover metric script
+- name: Install the textfile metric scripts
   ansible.builtin.copy:
-    src: dpkg-conffile-metric
-    dest: /usr/local/bin/dpkg-conffile-metric
+    src: "{{ item }}"
+    dest: "/usr/local/bin/{{ item }}"
     owner: root
     group: root
     mode: "0755"
+  loop:
+    - dpkg-conffile-metric
+    - failed-units-metric
 
-- name: Install the conffile leftover metric units
+- name: Install the textfile metric units
   ansible.builtin.copy:
     content: "{{ item.content }}"
     dest: "/etc/systemd/system/{{ item.name }}"
@@ -101,22 +104,53 @@
 
         [Install]
         WantedBy=timers.target
+    - name: failed-units-metric.service
+      content: |
+        # Managed by Ansible (roles/monitoring_agent).
+        [Unit]
+        Description=Export failed systemd units for node_exporter
+
+        [Service]
+        Type=oneshot
+        ExecStart=/usr/local/bin/failed-units-metric
+    - name: failed-units-metric.timer
+      content: |
+        # Managed by Ansible (roles/monitoring_agent).
+        [Unit]
+        Description=Periodic export of failed systemd units
+
+        [Timer]
+        OnCalendar=*:0/5
+        RandomizedDelaySec=30
+
+        [Install]
+        WantedBy=timers.target
   loop_control:
     label: "{{ item.name }}"
 
-- name: Enable the conffile leftover metric timer
+- name: Enable the textfile metric timers
   ansible.builtin.systemd_service:
-    name: dpkg-conffile-metric.timer
+    name: "{{ item }}"
     daemon_reload: true
     enabled: true
     state: started
+  loop:
+    - dpkg-conffile-metric.timer
+    - failed-units-metric.timer
 
-# The timer only fires daily; produce the metric right away so a fresh host
-# does not report "no data" until tomorrow.
-- name: Export the conffile leftover metric once
-  ansible.builtin.command: /usr/local/bin/dpkg-conffile-metric
+# The timers only fire later; produce each metric right away so a fresh host
+# does not report "no data" until then.
+- name: Export the textfile metrics once
+  ansible.builtin.command: "/usr/local/bin/{{ item.script }}"
   args:
-    creates: /var/lib/prometheus/node-exporter/dpkg_conffiles.prom
+    creates: "/var/lib/prometheus/node-exporter/{{ item.creates }}"
+  loop:
+    - script: dpkg-conffile-metric
+      creates: dpkg_conffiles.prom
+    - script: failed-units-metric
+      creates: failed_units.prom
+  loop_control:
+    label: "{{ item.script }}"
 
 # --- vmagent ---
 

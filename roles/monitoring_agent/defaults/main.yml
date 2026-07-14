@@ -20,23 +20,27 @@ monitoring_agent_max_buffer: 512MiB
 # only needs to buffer hub outages (journal-upload resumes from its cursor).
 monitoring_agent_journal_max_use: 500M
 
-# node_exporter collectors that only report on bare-metal hardware (sensors,
-# power, RAID, specialty interconnects) -- pointless sysfs walks on a VPS.
-monitoring_agent_disabled_collectors:
-  - bcache
-  - bonding
-  - cpufreq
-  - edac
-  - fibrechannel
-  - hwmon
-  - infiniband
-  - mdadm
-  - nvme
-  - powersupplyclass
-  - rapl
-  - tapestats
-  - thermal_zone
-  - watchdog
+# node_exporter runs with --collector.disable-defaults; only collectors
+# answering a question we actually care about on a small VPS are enabled:
+# disk space (filesystem), memory/OOM (meminfo, vmstat), CPU usage and
+# saturation (cpu, pressure, loadavg), reboots (stat), clock sync (timex),
+# I/O and traffic rates (diskstats, netdev), fleet versions (uname, os) and
+# the custom textfile metrics. Failed systemd units come from a textfile
+# timer, not the (expensive) systemd collector.
+monitoring_agent_enabled_collectors:
+  - cpu
+  - diskstats
+  - filesystem
+  - loadavg
+  - meminfo
+  - netdev
+  - os
+  - pressure
+  - stat
+  - textfile
+  - timex
+  - uname
+  - vmstat
 
 # Extra entries for vmagent's scrape_configs, e.g. an app's metrics endpoint:
 #   monitoring_agent_extra_scrape_configs:

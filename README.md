@@ -5,7 +5,10 @@
 Push-based monitoring: every host (`monitoring_agent` role) runs
 node_exporter bound to localhost, vmagent pushing its metrics to the hub via
 Prometheus remote_write, and systemd-journal-upload streaming the journal to
-VictoriaLogs. The hub (`monitoring_hub` role, host group `monitoring`) runs
+VictoriaLogs. node_exporter runs an allowlist of collectors
+(`monitoring_agent_enabled_collectors`) covering just the questions we care
+about on a VPS — disk space, memory/OOM, CPU, reboots, clock sync, I/O and
+traffic rates, versions — instead of the default everything. The hub (`monitoring_hub` role, host group `monitoring`) runs
 VictoriaMetrics, VictoriaLogs and Grafana, with datasources and a Node
 Exporter Full dashboard provisioned; the Grafana UI is exposed through the
 host's Cloudflare tunnel. Alerting is Grafana's built-in one — contact
@@ -59,6 +62,13 @@ Operational notes:
   `*.dpkg-dist`/`*.dpkg-new`/`*.dpkg-old`/`*.ucf-dist` under `/etc`) via the
   node_exporter textfile collector; alert on `> 0` in Grafana, then diff the
   leftover against the kept file and delete it once reconciled.
+- Failed units: node_exporter's systemd collector is disabled (it cost more
+  than all other collectors combined); instead a five-minute timer exports
+  `systemd_failed_units_total` plus one `systemd_failed_unit{unit="..."}`
+  series per failed unit. Alert on `systemd_failed_units_total > 0`.
+- Textfile metrics go stale silently if their timer breaks; a
+  `time() - node_textfile_mtime_seconds > 90000` alert in Grafana covers
+  both of the above (the dpkg timer is the slowest at daily).
 
 ## Backups
 

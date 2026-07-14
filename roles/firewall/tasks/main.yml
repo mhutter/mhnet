@@ -3,6 +3,12 @@
 # file that nftables.service (re)loads atomically. Being stateful, it accepts
 # return traffic of outbound connections, so cloudflared needs no open ports.
 
+- name: Remove ufw
+  ansible.builtin.apt:
+    name: ufw
+    state: absent
+    purge: true
+
 - name: Install nftables
   ansible.builtin.apt:
     name: nftables

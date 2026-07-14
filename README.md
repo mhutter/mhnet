@@ -9,9 +9,10 @@ VictoriaLogs. node_exporter runs an allowlist of collectors
 (`monitoring_agent_enabled_collectors`) covering just the questions we care
 about on a VPS — disk space, memory/OOM, CPU, reboots, clock sync, I/O and
 traffic rates, versions — instead of the default everything. The hub (`monitoring_hub` role, host group `monitoring`) runs
-VictoriaMetrics, VictoriaLogs and Grafana, with datasources and a Node
-Exporter Full dashboard provisioned; the Grafana UI is exposed through the
-host's Cloudflare tunnel. Alerting is Grafana's built-in one — contact
+VictoriaMetrics, VictoriaLogs and Grafana, with datasources and a lean
+"mhnet node" dashboard provisioned (one row per question the collector
+allowlist answers); the Grafana UI is exposed through the host's Cloudflare
+tunnel. Alerting is Grafana's built-in one — contact
 points and alert rules are configured in the UI.
 
 The hub is the one deliberate exception to the no-inbound rule: its two

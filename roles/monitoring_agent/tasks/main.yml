@@ -40,7 +40,7 @@
   ansible.builtin.copy:
     content: |
       # Managed by Ansible (roles/monitoring_agent).
-      ARGS="--web.listen-address=[::1]:9100 --collector.textfile.directory=/var/lib/prometheus/node-exporter"
+      ARGS="--web.listen-address=[::1]:9100 --collector.textfile.directory=/var/lib/prometheus/node-exporter{% for collector in monitoring_agent_disabled_collectors %} --no-collector.{{ collector }}{% endfor %}"
     dest: /etc/default/prometheus-node-exporter
     owner: root
     group: root

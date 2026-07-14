@@ -3,6 +3,39 @@
 # these rules route through the default policy.
 apiVersion: 1
 
+# Compact Telegram-friendly notification rendering; the default template
+# dumps values, every label, and bare URLs. To use it, point the Telegram
+# contact point (UI-managed) at it: Message = {{ template "telegram.message" . }}
+# and Parse mode = HTML. Label/annotation values must not contain raw
+# HTML metacharacters (&, <, >) -- ours are hostnames, unit names, paths.
+templates:
+  - orgId: 1
+    name: telegram
+    template: |
+      {{ define "telegram.alert" -}}
+      <b>{{ .Labels.alertname }}</b>{{ with .Labels.instance }} · <code>{{ . }}</code>{{ end }}
+      {{ with .Annotations.summary }}{{ . }}
+      {{ end -}}
+      {{ with .Annotations.description }}{{ . }}
+      {{ end -}}
+      <a href="{{ .GeneratorURL }}">source</a>{{ if eq .Status "firing" }} · <a href="{{ .SilenceURL }}">silence</a>{{ end }}
+      {{ end }}
+
+      {{ define "telegram.message" -}}
+      {{ if .Alerts.Firing -}}
+      🔴 <b>{{ len .Alerts.Firing }} firing</b>
+      {{ range .Alerts.Firing }}
+      {{ template "telegram.alert" . -}}
+      {{ end }}
+      {{ end -}}
+      {{ if .Alerts.Resolved -}}
+      ✅ <b>{{ len .Alerts.Resolved }} resolved</b>
+      {{ range .Alerts.Resolved }}
+      {{ template "telegram.alert" . -}}
+      {{ end }}
+      {{ end -}}
+      {{ end }}
+
 groups:
   - orgId: 1
     name: mhnet

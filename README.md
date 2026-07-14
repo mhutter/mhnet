@@ -12,10 +12,12 @@ traffic rates, versions — instead of the default everything. The hub (`monitor
 VictoriaMetrics, VictoriaLogs and Grafana, with datasources and a lean
 "mhnet node" dashboard provisioned (one row per question the collector
 allowlist answers); the Grafana UI is exposed through the host's Cloudflare
-tunnel. Alerting is Grafana's built-in one; the failed-units and
-textfile-staleness rules are provisioned from the repo
+tunnel. Alerting is Grafana's built-in one; the alert rules and a compact
+Telegram notification template are provisioned from the repo
 (`grafana-alerting.yml`), everything else — contact points, notification
-policies, further rules — is configured in the UI.
+policies, further rules — is configured in the UI. To use the template, set
+the Telegram contact point's Message to
+`{{ template "telegram.message" . }}` and its Parse mode to `HTML`.
 
 The hub is the one deliberate exception to the no-inbound rule: its two
 ingest ports (8428 metrics, 9428 logs) serve TLS (Let's Encrypt via

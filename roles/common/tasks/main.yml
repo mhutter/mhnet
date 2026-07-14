@@ -73,6 +73,20 @@
     group: root
     mode: "0644"
 
+# Keep locally modified conffiles instead of prompting; interactive dpkg
+# prompts hang unattended tools like apt-dater.
+- name: Never prompt for conffile changes
+  ansible.builtin.copy:
+    dest: /etc/apt/apt.conf.d/90force-conf
+    content: |
+      Dpkg::Options {
+        "--force-confdef";
+        "--force-confold";
+      };
+    owner: root
+    group: root
+    mode: "0644"
+
 - name: Remove unused packages
   ansible.builtin.apt:
     name:

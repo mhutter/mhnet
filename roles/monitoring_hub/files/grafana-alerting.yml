@@ -1,0 +1,69 @@
+# Managed by Ansible (roles/monitoring_hub).
+# Alert rules only; contact points and notification policies stay UI-managed,
+# these rules route through the default policy.
+apiVersion: 1
+
+groups:
+  - orgId: 1
+    name: mhnet
+    folder: mhnet
+    interval: 5m
+    rules:
+      - uid: mhnet-failed-units
+        title: FailedUnits
+        condition: B
+        for: 5m
+        noDataState: NoData
+        execErrState: Error
+        annotations:
+          summary: >-
+            {{ $labels.instance }} has failed systemd units
+            (systemd_failed_unit{instance="{{ $labels.instance }}"} lists
+            them; the journal on this hub has the details).
+        data:
+          - refId: A
+            relativeTimeRange: { from: 600, to: 0 }
+            datasourceUid: victoriametrics
+            model:
+              refId: A
+              instant: true
+              expr: sum by (instance) (systemd_failed_units_total)
+          - refId: B
+            datasourceUid: __expr__
+            model:
+              refId: B
+              type: threshold
+              expression: A
+              conditions:
+                - evaluator: { type: gt, params: [0] }
+
+      # Textfile metrics keep reporting their last value if their timer
+      # breaks; the dpkg timer is the slowest at daily, so anything older
+      # than 25h means the metric can no longer be trusted.
+      - uid: mhnet-stale-textfile
+        title: StaleTextfileMetrics
+        condition: B
+        for: 0s
+        noDataState: NoData
+        execErrState: Error
+        annotations:
+          summary: >-
+            Textfile metric {{ $labels.file }} on {{ $labels.instance }} has
+            not been refreshed for over 25h; its exporting timer is likely
+            broken and the metric value is stale.
+        data:
+          - refId: A
+            relativeTimeRange: { from: 600, to: 0 }
+            datasourceUid: victoriametrics
+            model:
+              refId: A
+              instant: true
+              expr: time() - node_textfile_mtime_seconds
+          - refId: B
+            datasourceUid: __expr__
+            model:
+              refId: B
+              type: threshold
+              expression: A
+              conditions:
+                - evaluator: { type: gt, params: [90000] }

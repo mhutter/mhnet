@@ -314,6 +314,15 @@
     mode: "0640"
   notify: restart grafana
 
+- name: Provision Grafana alert rules
+  ansible.builtin.copy:
+    src: grafana-alerting.yml
+    dest: /etc/grafana/provisioning/alerting/mhnet.yml
+    owner: root
+    group: grafana
+    mode: "0640"
+  notify: restart grafana
+
 - name: Ensure Grafana is enabled and started
   ansible.builtin.systemd_service:
     name: grafana-server.service

@@ -12,8 +12,10 @@ traffic rates, versions — instead of the default everything. The hub (`monitor
 VictoriaMetrics, VictoriaLogs and Grafana, with datasources and a lean
 "mhnet node" dashboard provisioned (one row per question the collector
 allowlist answers); the Grafana UI is exposed through the host's Cloudflare
-tunnel. Alerting is Grafana's built-in one — contact
-points and alert rules are configured in the UI.
+tunnel. Alerting is Grafana's built-in one; the failed-units and
+textfile-staleness rules are provisioned from the repo
+(`grafana-alerting.yml`), everything else — contact points, notification
+policies, further rules — is configured in the UI.
 
 The hub is the one deliberate exception to the no-inbound rule: its two
 ingest ports (8428 metrics, 9428 logs) serve TLS (Let's Encrypt via
@@ -66,10 +68,11 @@ Operational notes:
 - Failed units: node_exporter's systemd collector is disabled (it cost more
   than all other collectors combined); instead a five-minute timer exports
   `systemd_failed_units_total` plus one `systemd_failed_unit{unit="..."}`
-  series per failed unit. Alert on `systemd_failed_units_total > 0`.
-- Textfile metrics go stale silently if their timer breaks; a
-  `time() - node_textfile_mtime_seconds > 90000` alert in Grafana covers
-  both of the above (the dpkg timer is the slowest at daily).
+  series per failed unit. The provisioned `FailedUnits` alert fires on
+  `> 0`.
+- Textfile metrics go stale silently if their timer breaks; the provisioned
+  `StaleTextfileMetrics` alert fires when any textfile is older than 25h,
+  covering both of the above (the dpkg timer is the slowest at daily).
 
 ## Backups
 

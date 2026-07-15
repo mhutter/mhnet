@@ -70,8 +70,9 @@ Operational notes:
 - Failed units: node_exporter's systemd collector is disabled (it cost more
   than all other collectors combined); instead a five-minute timer exports
   `systemd_failed_units_total` plus one `systemd_failed_unit{unit="..."}`
-  series per failed unit. The provisioned `FailedUnits` alert fires on
-  `> 0`.
+  series per failed unit. The provisioned `FailedUnits` alert fires per
+  failed unit, naming it in the message; the Telegram notification links
+  the unit's journal in VictoriaLogs.
 - Textfile metrics go stale silently if their timer breaks; the provisioned
   `StaleTextfileMetrics` alert fires when any textfile is older than 25h,
   covering both of the above (the dpkg timer is the slowest at daily).

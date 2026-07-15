@@ -12,13 +12,20 @@ templates:
   - orgId: 1
     name: telegram
     template: |
+      {{/* Grafana Explore link to the unit's journal in VictoriaLogs (the
+           instance label matches journald's _HOSTNAME). Per-alert data has
+           no ExternalURL, so the base URL is recovered from SilenceURL. */}}
+      {{ define "telegram.unitLogsURL" -}}
+      {{ reReplaceAll "/alerting/silence/new.*" "" .SilenceURL }}/explore?left={{ urlquery `{"datasource":"victorialogs","queries":[{"refId":"A","expr":"_HOSTNAME:\"` .Labels.instance `\" AND _SYSTEMD_UNIT:\"` .Labels.unit `\""}],"range":{"from":"now-24h","to":"now"}}` }}
+      {{- end }}
+
       {{ define "telegram.alert" -}}
       <b>{{ .Labels.alertname }}</b>{{ with .Labels.instance }} · <code>{{ . }}</code>{{ end }}
       {{ with .Annotations.summary }}{{ . }}
       {{ end -}}
       {{ with .Annotations.description }}{{ . }}
       {{ end -}}
-      <a href="{{ .GeneratorURL }}">source</a>{{ if eq .Status "firing" }} · <a href="{{ .SilenceURL }}">silence</a>{{ end }}
+      <a href="{{ .GeneratorURL }}">source</a>{{ if eq .Status "firing" }} · <a href="{{ .SilenceURL }}">silence</a>{{ end }}{{ with .Labels.unit }} · <a href="{{ template "telegram.unitLogsURL" $ }}">logs</a>{{ end }}
       {{ end }}
 
       {{ define "telegram.message" -}}
@@ -42,17 +49,22 @@ groups:
     folder: mhnet
     interval: 5m
     rules:
+      # One alert instance per failed unit, so notifications name each unit
+      # and the telegram template can link its journal. Healthy hosts export
+      # no systemd_failed_unit series at all, hence noDataState OK; a dead
+      # agent is still caught by StaleTextfileMetrics going NoData.
       - uid: mhnet-failed-units
         title: FailedUnits
         condition: B
         for: 5m
-        noDataState: NoData
+        noDataState: OK
         execErrState: Error
         annotations:
           summary: >-
-            {{ $labels.instance }} has failed systemd units
-            (systemd_failed_unit{instance="{{ $labels.instance }}"} lists
-            them; the journal on this hub has the details).
+            Unit {{ $labels.unit }} on {{ $labels.instance }} is in the
+            failed state (logs in VictoriaLogs:
+            _HOSTNAME:{{ $labels.instance }} AND
+            _SYSTEMD_UNIT:{{ $labels.unit }}).
         data:
           - refId: A
             relativeTimeRange: { from: 600, to: 0 }
@@ -60,7 +72,7 @@ groups:
             model:
               refId: A
               instant: true
-              expr: sum by (instance) (systemd_failed_units_total)
+              expr: sum by (instance, unit) (systemd_failed_unit)
           - refId: B
             datasourceUid: __expr__
             model:

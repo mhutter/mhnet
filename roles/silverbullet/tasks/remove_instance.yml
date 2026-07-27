@@ -1,0 +1,17 @@
+---
+# Decommissions one instance that still has an env file on disk but is gone
+# from silverbullet_instances. The space folder is deliberately kept -- it
+# holds the notes; remove it by hand once the backups are no longer wanted.
+# The tunnel ingress entry and its DNS record also stay behind (see the
+# cloudflared role).
+
+- name: "Stop and disable SilverBullet instance {{ silverbullet_removed }}"
+  ansible.builtin.systemd_service:
+    name: "silverbullet@{{ silverbullet_removed }}.service"
+    enabled: false
+    state: stopped
+
+- name: "Remove the configuration of SilverBullet instance {{ silverbullet_removed }}"
+  ansible.builtin.file:
+    path: "/etc/silverbullet/{{ silverbullet_removed }}.env"
+    state: absent

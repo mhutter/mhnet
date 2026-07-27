@@ -32,7 +32,7 @@ ends up hosting more than one instance of the same purpose.
   every required var; keep in sync when roles gain inventory vars
 - `roles/` — `common`, `firewall`, `backup`, `cloudflared`, `postgresql`,
   `dns64`, `monitoring_agent` apply broadly; `pocket_id`, `miniflux`,
-  `monitoring_hub` are per-app
+  `silverbullet`, `monitoring_hub` are per-app
 - `playbooks/site.yml` — main playbook, run against `all` plus per-app host
   groups; roles are tagged with their own name for selective runs
 - `playbooks/bootstrap.yml` — minimal `common`-only pass for brand-new hosts

@@ -162,13 +162,18 @@
     create_home: false
     shell: /usr/sbin/nologin
 
-- name: Create vmagent configuration directory
+# scrape.d holds the scrape configs app roles register through
+# tasks_from: scrape_config; vmagent globs it from scrape.yml.
+- name: Create vmagent configuration directories
   ansible.builtin.file:
-    path: /etc/vmagent
+    path: "{{ item }}"
     state: directory
     owner: root
     group: root
     mode: "0755"
+  loop:
+    - /etc/vmagent
+    - /etc/vmagent/scrape.d
 
 - name: Create vmagent buffer directory
   ansible.builtin.file:

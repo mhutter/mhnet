@@ -1,0 +1,11 @@
+---
+# Config for one instance changed: the whole (tiny) set restarts, which keeps
+# the handler free of per-instance bookkeeping.
+- name: restart silverbullet
+  ansible.builtin.systemd_service:
+    name: "silverbullet@{{ item.name }}.service"
+    daemon_reload: true
+    state: restarted
+  loop: "{{ silverbullet_instances }}"
+  loop_control:
+    label: "{{ item.name }}"

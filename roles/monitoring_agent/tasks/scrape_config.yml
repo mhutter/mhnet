@@ -1,0 +1,38 @@
+---
+# Registers extra vmagent scrape targets. Included from an app role:
+#
+#   - name: Scrape my-app
+#     ansible.builtin.include_role:
+#       name: monitoring_agent
+#       tasks_from: scrape_config
+#     vars:
+#       monitoring_agent_scrape_name: my-app
+#       monitoring_agent_scrape_config:
+#         - job_name: my-app
+#           static_configs:
+#             - targets: ["127.0.0.1:8080"]
+#               labels: { instance: "{{ inventory_hostname }}" }
+#
+# vmagent picks the drop-ins up through scrape_config_files in
+# /etc/vmagent/scrape.yml, so a standalone app-tag run is enough to add
+# targets. For a single static target from the inventory,
+# monitoring_agent_extra_scrape_configs does the same without a drop-in file.
+
+- name: Ensure the vmagent scrape drop-in directory exists
+  ansible.builtin.file:
+    path: /etc/vmagent/scrape.d
+    state: directory
+    owner: root
+    group: root
+    mode: "0755"
+
+- name: "Configure vmagent scrape targets for {{ monitoring_agent_scrape_name }}"
+  ansible.builtin.copy:
+    content: |
+      # Managed by Ansible (roles/{{ monitoring_agent_scrape_name }}).
+      {{ monitoring_agent_scrape_config | to_nice_yaml(indent=2) }}
+    dest: "/etc/vmagent/scrape.d/{{ monitoring_agent_scrape_name }}.yml"
+    owner: root
+    group: root
+    mode: "0644"
+  notify: restart vmagent

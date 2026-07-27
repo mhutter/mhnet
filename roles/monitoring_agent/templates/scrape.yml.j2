@@ -2,6 +2,10 @@
 global:
   scrape_interval: {{ monitoring_scrape_interval }}
 
+# App roles drop their own scrape configs here (tasks_from: scrape_config).
+scrape_config_files:
+- /etc/vmagent/scrape.d/*.yml
+
 # The instance label defaults to the target address, which would collide
 # across hosts on [::1]:9100; pin it to the inventory hostname instead.
 scrape_configs:

@@ -76,6 +76,28 @@ all:
           pocket_id_app_hostname: id.example.com
           pocket_id_encryption_key: "<secret>"
 
+    silverbullet:
+      hosts:
+        hbc-silverbullet:
+          ansible_host: 2001:db8:4::1
+          cloudflared_tunnel_id: "<tunnel id>"
+          cloudflared_tunnel_token: "<secret: tunnel token>"
+          backup_b2_account_id: "<B2 key id>"
+          backup_b2_account_key: "<secret: B2 key>"
+          backup_restic_password: "<secret -- keep an offsite copy>"
+
+          # One entry per space: each gets its own systemd instance, space
+          # folder and hostname on the shared tunnel. `user` is
+          # SilverBullet's single-user login, "user:password".
+          silverbullet_instances:
+            - name: notes
+              hostname: notes.example.com
+              user: "me:<secret: password>"
+            - name: work
+              hostname: work.example.com
+              user: "me:<secret: password>"
+              title: Work notes
+
     monitoring:
       hosts:
         hbc-monitoring:

@@ -1,7 +1,7 @@
 # {{ ansible_managed }}
 
-# Also install regular point-release updates, not just security ones.
-Unattended-Upgrade::Allowed-Origins:: "${distro_id}:${distro_codename}-updates";
+# Update from all configured repositories (distro, security, and third-party).
+Unattended-Upgrade::Allowed-Origins:: "*";
 
 Unattended-Upgrade::Automatic-Reboot "true";
 Unattended-Upgrade::Automatic-Reboot-Time "{{ unattended_upgrades_reboot_time }}";

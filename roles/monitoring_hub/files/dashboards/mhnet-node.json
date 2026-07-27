@@ -343,7 +343,6 @@
         "defaults": {
           "unit": "percentunit",
           "min": 0,
-          "max": 1,
           "color": { "mode": "palette-classic" },
           "custom": { "drawStyle": "line", "lineWidth": 2, "fillOpacity": 0 }
         },
@@ -544,13 +543,19 @@
           {
             "matcher": { "id": "byRegexp", "options": "/read/" },
             "properties": [
-              { "id": "color", "value": { "mode": "fixed", "fixedColor": "blue" } }
+              {
+                "id": "color",
+                "value": { "mode": "fixed", "fixedColor": "blue" }
+              }
             ]
           },
           {
             "matcher": { "id": "byRegexp", "options": "/write/" },
             "properties": [
-              { "id": "color", "value": { "mode": "fixed", "fixedColor": "orange" } }
+              {
+                "id": "color",
+                "value": { "mode": "fixed", "fixedColor": "orange" }
+              }
             ]
           }
         ]
@@ -576,7 +581,6 @@
         "defaults": {
           "unit": "percentunit",
           "min": 0,
-          "max": 1,
           "color": { "mode": "palette-classic" },
           "custom": { "drawStyle": "line", "lineWidth": 2, "fillOpacity": 0 }
         },
@@ -622,13 +626,19 @@
           {
             "matcher": { "id": "byRegexp", "options": "/rx/" },
             "properties": [
-              { "id": "color", "value": { "mode": "fixed", "fixedColor": "blue" } }
+              {
+                "id": "color",
+                "value": { "mode": "fixed", "fixedColor": "blue" }
+              }
             ]
           },
           {
             "matcher": { "id": "byRegexp", "options": "/tx/" },
             "properties": [
-              { "id": "color", "value": { "mode": "fixed", "fixedColor": "orange" } }
+              {
+                "id": "color",
+                "value": { "mode": "fixed", "fixedColor": "orange" }
+              }
             ]
           }
         ]

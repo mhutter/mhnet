@@ -9,7 +9,6 @@
     {
       devShell."${system}" = pkgs.mkShell {
         packages = with pkgs; [
-          ansible
           apt-dater
         ];
 

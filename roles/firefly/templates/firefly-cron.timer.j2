@@ -1,0 +1,12 @@
+# Managed by Ansible (roles/firefly).
+
+[Unit]
+Description=Daily Firefly III cron job
+
+[Timer]
+OnCalendar={{ firefly_cron_oncalendar }}
+RandomizedDelaySec={{ firefly_cron_randomized_delay }}
+Persistent=true
+
+[Install]
+WantedBy=timers.target

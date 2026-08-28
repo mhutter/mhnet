@@ -1,0 +1,399 @@
+---
+# Firefly III: PHP/Laravel app served by nginx + php-fpm over unix sockets,
+# with PostgreSQL as its database. Releases are unpacked side by side under
+# /var/www/firefly-iii/releases and switched over by the `current` symlink;
+# state that must survive an upgrade (attachments, Passport keys) lives in
+# /var/lib/firefly-iii/storage and is symlinked into each release.
+#
+# Firefly III cannot import files by itself -- CAMT.053 and CSV imports need
+# the separate data importer, which is deliberately not deployed here: it is
+# run on demand as a local container against this instance's API (see README).
+
+- name: Ensure Firefly III is configured
+  ansible.builtin.assert:
+    that:
+      - firefly_app_key | length == 32
+      - "'CHANGEME' not in firefly_app_key"
+      - "'CHANGEME' not in firefly_app_hostname"
+      - "'CHANGEME' not in firefly_site_owner"
+    fail_msg: >-
+      Missing Firefly III variables for {{ inventory_hostname }}. Add
+      firefly_app_hostname, firefly_site_owner and firefly_app_key (exactly
+      32 characters, `openssl rand -base64 24`) to the vaulted inventory.
+
+# --- database ---
+
+- name: Install PostgreSQL
+  ansible.builtin.include_role:
+    name: postgresql
+
+- name: Create Firefly III database
+  ansible.builtin.include_role:
+    name: postgresql
+    tasks_from: database
+  vars:
+    postgresql_database_name: "{{ firefly_db_name }}"
+    postgresql_database_owner: "{{ firefly_db_user }}"
+
+# --- packages ---
+
+- name: Install nginx and PHP
+  ansible.builtin.apt:
+    name: "{{ ['nginx'] + firefly_php_packages }}"
+    state: present
+    update_cache: true
+
+- name: Verify the installed PHP version
+  ansible.builtin.command: "php{{ firefly_php_version }} -r 'echo PHP_VERSION;'"
+  register: firefly_php_installed
+  changed_when: false
+  failed_when: firefly_php_installed.stdout is version('8.5', '<')
+
+# Firefly III renders amounts, dates and month names through the system
+# locale, so the ones it may be asked for have to exist on the host. The
+# package registers its locales in /var/lib/locales/supported.d/; locale-gen
+# is what actually compiles them (upstream calls this out explicitly).
+- name: Install the language packs
+  ansible.builtin.apt:
+    name: "{{ firefly_language_packs }}"
+    state: present
+  register: firefly_language_packs_installed
+
+- name: Generate the locales
+  ansible.builtin.command:
+    cmd: locale-gen
+  when: firefly_language_packs_installed is changed
+  changed_when: true
+  notify: restart php-fpm
+
+# --- users and directories ---
+
+- name: Create the firefly system group
+  ansible.builtin.group:
+    name: "{{ firefly_user }}"
+    system: true
+
+- name: Create the firefly system user
+  ansible.builtin.user:
+    name: "{{ firefly_user }}"
+    group: "{{ firefly_user }}"
+    system: true
+    home: "{{ firefly_storage_dir | dirname }}"
+    create_home: false
+    shell: /usr/sbin/nologin
+
+- name: Create the Firefly III install directories
+  ansible.builtin.file:
+    path: "{{ item }}"
+    state: directory
+    owner: root
+    group: root
+    mode: "0755"
+  loop:
+    - "{{ firefly_dir }}"
+    - "{{ firefly_dir }}/releases"
+    - "{{ firefly_storage_dir | dirname }}"
+
+# Laravel and Firefly III both expect these to exist; the release ships them
+# empty, but this install replaces storage/ with a symlink to the shared one.
+- name: Create the Firefly III storage directories
+  ansible.builtin.file:
+    path: "{{ firefly_storage_dir }}/{{ item }}"
+    state: directory
+    owner: "{{ firefly_user }}"
+    group: "{{ firefly_user }}"
+    mode: "0750"
+  loop:
+    - ""
+    - app
+    - app/public
+    - database
+    - debugbar
+    - export
+    - framework
+    - framework/cache
+    - framework/cache/data
+    - framework/sessions
+    - framework/views
+    - logs
+    - upload
+
+- name: Create the Firefly III runtime directory
+  ansible.builtin.copy:
+    content: |
+      # Managed by Ansible (roles/firefly).
+      # Holds the nginx and php-fpm sockets cloudflared and nginx connect to.
+      d {{ firefly_runtime_dir }} 0755 root root -
+    dest: /etc/tmpfiles.d/firefly.conf
+    owner: root
+    group: root
+    mode: "0644"
+  register: firefly_tmpfiles
+
+- name: Apply the runtime directory definition
+  ansible.builtin.command:
+    cmd: systemd-tmpfiles --create /etc/tmpfiles.d/firefly.conf
+  when: firefly_tmpfiles is changed
+  changed_when: true
+
+# --- release ---
+
+- name: Create the Firefly III download and release directories
+  ansible.builtin.file:
+    path: "{{ item }}"
+    state: directory
+    owner: root
+    group: root
+    mode: "0755"
+  loop:
+    - "{{ firefly_download_dir }}"
+    - "{{ firefly_release_dir }}"
+
+- name: "Download Firefly III {{ firefly_version }}"
+  ansible.builtin.get_url:
+    url: "{{ firefly_release_url }}"
+    checksum: "sha256:{{ firefly_release_url }}.sha256"
+    dest: "{{ firefly_download_dir }}/{{ firefly_tarball }}"
+    owner: root
+    group: root
+    mode: "0644"
+
+- name: "Unpack Firefly III {{ firefly_version }}"
+  ansible.builtin.unarchive:
+    src: "{{ firefly_download_dir }}/{{ firefly_tarball }}"
+    remote_src: true
+    dest: "{{ firefly_release_dir }}"
+    # storage/ is the shared state directory, linked in below.
+    exclude: storage
+    creates: "{{ firefly_release_dir }}/artisan"
+    owner: root
+    group: root
+  register: firefly_unpack
+
+- name: Link the shared storage directory into the release
+  ansible.builtin.file:
+    path: "{{ firefly_release_dir }}/storage"
+    src: "{{ firefly_storage_dir }}"
+    state: link
+    force: true
+
+- name: Create the Firefly III configuration directory
+  ansible.builtin.file:
+    path: "{{ firefly_config_dir }}"
+    state: directory
+    owner: root
+    group: "{{ firefly_user }}"
+    mode: "0750"
+
+# Holds APP_KEY, so it is readable by the app user only.
+- name: Configure Firefly III
+  ansible.builtin.template:
+    src: env.j2
+    dest: "{{ firefly_config_dir }}/.env"
+    owner: root
+    group: "{{ firefly_user }}"
+    mode: "0640"
+  notify: restart php-fpm
+
+- name: Link the configuration into the release
+  ansible.builtin.file:
+    path: "{{ firefly_release_dir }}/.env"
+    src: "{{ firefly_config_dir }}/.env"
+    state: link
+    force: true
+
+# The switch to the new release only happens after the migrations succeeded,
+# so a comparison against `current` also re-runs them after a failed upgrade.
+- name: Check which release is live
+  ansible.builtin.stat:
+    path: "{{ firefly_current_dir }}"
+    follow: false
+  register: firefly_live
+
+# Migrations run against the new release's code, before it starts serving.
+# All of these are idempotent, so re-running them is safe.
+- name: Upgrade the Firefly III database
+  ansible.builtin.command:
+    cmd: "/usr/bin/php artisan {{ item }}"
+    chdir: "{{ firefly_release_dir }}"
+  become: true
+  become_user: "{{ firefly_user }}"
+  loop:
+    - cache:clear
+    - view:clear
+    - migrate --seed --force
+    - firefly-iii:upgrade-database
+    - firefly-iii:correct-database
+    # Signing keys for the API tokens the data importer authenticates with.
+    - firefly-iii:laravel-passport-keys
+  when: >-
+    firefly_unpack is changed
+    or firefly_live.stat.lnk_source | default("") != firefly_release_dir
+  changed_when: true
+
+- name: "Switch Firefly III to {{ firefly_version }}"
+  ansible.builtin.file:
+    path: "{{ firefly_current_dir }}"
+    src: "{{ firefly_release_dir }}"
+    state: link
+  notify: restart php-fpm
+
+- name: Find superseded Firefly III releases
+  ansible.builtin.find:
+    paths: "{{ firefly_dir }}/releases"
+    file_type: directory
+    excludes: "{{ firefly_version }}"
+  register: firefly_old
+
+- name: Remove superseded Firefly III releases
+  ansible.builtin.file:
+    path: "{{ item.path }}"
+    state: absent
+  loop: "{{ firefly_old.files }}"
+  loop_control:
+    label: "{{ item.path }}"
+
+- name: Remove superseded Firefly III downloads
+  ansible.builtin.find:
+    paths: "{{ firefly_download_dir }}"
+    patterns: "FireflyIII-*.tar.gz"
+    excludes: "{{ firefly_tarball }}"
+  register: firefly_old_downloads
+
+- name: Delete superseded Firefly III downloads
+  ansible.builtin.file:
+    path: "{{ item.path }}"
+    state: absent
+  loop: "{{ firefly_old_downloads.files }}"
+  loop_control:
+    label: "{{ item.path }}"
+
+# --- php-fpm ---
+
+# Nothing else is served from this host, and the packaged pool would keep a
+# couple of idle workers around for nobody. dpkg remembers the removal.
+- name: Remove the default php-fpm pool
+  ansible.builtin.file:
+    path: "/etc/php/{{ firefly_php_version }}/fpm/pool.d/www.conf"
+    state: absent
+  notify: restart php-fpm
+
+- name: Configure the Firefly III php-fpm pool
+  ansible.builtin.template:
+    src: php-fpm-pool.conf.j2
+    dest: "/etc/php/{{ firefly_php_version }}/fpm/pool.d/firefly.conf"
+    owner: root
+    group: root
+    mode: "0644"
+  notify: restart php-fpm
+
+- name: Tune opcache for Firefly III
+  ansible.builtin.template:
+    src: php-opcache.ini.j2
+    dest: "/etc/php/{{ firefly_php_version }}/fpm/conf.d/99-firefly.ini"
+    owner: root
+    group: root
+    mode: "0644"
+  notify: restart php-fpm
+
+- name: Ensure php-fpm is enabled and started
+  ansible.builtin.systemd_service:
+    name: "php{{ firefly_php_version }}-fpm.service"
+    enabled: true
+    state: started
+
+# --- nginx ---
+
+# It listens on 0.0.0.0:80 and would be the only thing binding a TCP port.
+- name: Remove the default nginx site
+  ansible.builtin.file:
+    path: /etc/nginx/sites-enabled/default
+    state: absent
+  notify: reload nginx
+
+- name: Configure the Firefly III nginx site
+  ansible.builtin.template:
+    src: nginx-site.conf.j2
+    dest: /etc/nginx/sites-available/firefly.conf
+    owner: root
+    group: root
+    mode: "0644"
+  notify: reload nginx
+
+- name: Enable the Firefly III nginx site
+  ansible.builtin.file:
+    path: /etc/nginx/sites-enabled/firefly.conf
+    src: /etc/nginx/sites-available/firefly.conf
+    state: link
+  notify: reload nginx
+
+- name: Ensure nginx is enabled and started
+  ansible.builtin.systemd_service:
+    name: nginx.service
+    enabled: true
+    state: started
+
+# --- cron ---
+
+- name: Install the Firefly III cron units
+  ansible.builtin.template:
+    src: "{{ item }}.j2"
+    dest: "/etc/systemd/system/{{ item }}"
+    owner: root
+    group: root
+    mode: "0644"
+  loop:
+    - firefly-cron.service
+    - firefly-cron.timer
+
+- name: Ensure the Firefly III cron timer is enabled and started
+  ansible.builtin.systemd_service:
+    name: firefly-cron.timer
+    daemon_reload: true
+    enabled: true
+    state: started
+
+# --- backups ---
+# The database is dumped by the PostgreSQL role's pre-backup hook; what is
+# left is the attachments, the Passport keys and APP_KEY (without which the
+# encrypted database columns are unreadable).
+
+- name: Ensure backup drop-in directories exist
+  ansible.builtin.include_role:
+    name: backup
+    tasks_from: dropin_dirs
+
+- name: Register Firefly III backup paths
+  ansible.builtin.copy:
+    content: |
+      {{ firefly_storage_dir }}
+      {{ firefly_config_dir }}
+    dest: /etc/backup/paths.d/50-firefly.txt
+    owner: root
+    group: root
+    mode: "0644"
+
+- name: Exclude regenerable Firefly III state from the backup
+  ansible.builtin.copy:
+    content: |
+      {{ firefly_storage_dir }}/framework
+      {{ firefly_storage_dir }}/debugbar
+      {{ firefly_storage_dir }}/logs
+    dest: /etc/backup/exclude.d/50-firefly.txt
+    owner: root
+    group: root
+    mode: "0644"
+
+# --- Cloudflare tunnel ---
+
+- name: Install the Cloudflare tunnel connector
+  ansible.builtin.include_role:
+    name: cloudflared
+
+- name: Expose Firefly III through the Cloudflare tunnel
+  ansible.builtin.include_role:
+    name: cloudflared
+    tasks_from: expose
+  vars:
+    cloudflared_expose_hostname: "{{ firefly_app_hostname }}"
+    cloudflared_expose_service: "unix:{{ firefly_listen_socket }}"

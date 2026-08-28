@@ -1,0 +1,77 @@
+# Managed by Ansible (roles/firefly).
+# Listens on a unix socket only: cloudflared is the sole client, nothing
+# binds a TCP port. The rewrite rules follow the release's nginx_app.conf.
+
+server {
+    listen unix:{{ firefly_listen_socket }};
+    server_name {{ firefly_app_hostname }};
+
+    # $realpath_root resolves the `current` symlink, so opcache never serves
+    # a previous release's compiled files after an upgrade.
+    root {{ firefly_current_dir }}/public;
+    index index.php;
+
+    client_max_body_size {{ firefly_upload_max_size }};
+
+    # Passport (used by the API calls the UI makes for itself) issues a large
+    # `laravel_token` cookie. Both directions of the FastCGI hop have to hold
+    # it: with the default 4k/8k buffers the response trips "upstream sent too
+    # big header" (502) and the request carrying it back can 400.
+    fastcgi_buffer_size 32k;
+    fastcgi_buffers 8 32k;
+    fastcgi_busy_buffers_size 64k;
+    large_client_header_buffers 4 32k;
+
+    # Cloudflare compresses towards the browser, but the tunnel hop pays for
+    # whatever the origin hands over, so compress here as well.
+    gzip on;
+    gzip_vary on;
+    gzip_min_length 1024;
+    gzip_types text/css text/javascript application/javascript application/json
+               image/svg+xml application/manifest+json;
+
+    location / {
+        try_files $uri @rewriteapp;
+    }
+
+    # Static assets carry a ?v=<build time> that changes with every release,
+    # so they can be cached for as long as the browser likes.
+    location ~* \.(css|js|woff2?|ttf|png|jpe?g|gif|svg|ico|map)$ {
+        expires 30d;
+        add_header Cache-Control "public";
+        try_files $uri @rewriteapp;
+    }
+
+    location @rewriteapp {
+        rewrite ^(.*)$ /index.php$1 last;
+    }
+
+    location ~ ^/index\.php(/|$) {
+        fastcgi_pass unix:{{ firefly_fpm_socket }};
+        fastcgi_split_path_info ^(.+\.php)(/.*)$;
+        include fastcgi_params;
+        fastcgi_param SCRIPT_FILENAME $realpath_root$fastcgi_script_name;
+        fastcgi_param DOCUMENT_ROOT $realpath_root;
+
+        # The request reaches nginx over a plain unix socket, so PHP would
+        # see it as http and Firefly III would build every absolute URL --
+        # including the API calls the UI makes to itself -- with an http
+        # scheme. Its TRUSTED_PROXIES setting cannot fix that: 6.6.6 wires
+        # Laravel's default TrustProxies middleware without configuring it
+        # (bootstrap/app.php), so X-Forwarded-Proto is ignored. State the
+        # truth here instead -- cloudflared is the only client and it always
+        # terminates TLS. SERVER_PORT comes with it, or the generated URLs
+        # would carry the socket's port 0.
+        fastcgi_param HTTPS on;
+        fastcgi_param REQUEST_SCHEME https;
+        fastcgi_param SERVER_PORT 443;
+        # Prevent the HTTPoxy vulnerability.
+        fastcgi_param HTTP_PROXY "";
+        internal;
+    }
+
+    # Everything is routed through index.php; no other script is executable.
+    location ~ \.php$ {
+        return 404;
+    }
+}

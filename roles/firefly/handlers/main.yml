@@ -1,0 +1,10 @@
+---
+- name: restart php-fpm
+  ansible.builtin.systemd_service:
+    name: "php{{ firefly_php_version }}-fpm.service"
+    state: restarted
+
+- name: reload nginx
+  ansible.builtin.systemd_service:
+    name: nginx.service
+    state: reloaded

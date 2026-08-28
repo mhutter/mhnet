@@ -1,0 +1,16 @@
+; Managed by Ansible (roles/firefly).
+; Applies to the FPM SAPI only; the CLI (artisan, the cron timer) keeps the
+; packaged defaults, where opcache is off and every run compiles fresh.
+
+opcache.memory_consumption={{ firefly_opcache_memory_mb }}
+opcache.interned_strings_buffer={{ firefly_opcache_interned_strings_mb }}
+opcache.max_accelerated_files={{ firefly_opcache_max_files }}
+
+; Releases are immutable and served under their own path, and php-fpm is
+; restarted when `current` moves, so there is nothing to re-check per request.
+opcache.validate_timestamps=0
+
+; Laravel resolves a lot of paths per request; caching them saves the stat
+; calls that validate_timestamps=0 no longer amortises.
+realpath_cache_size=4096k
+realpath_cache_ttl=600

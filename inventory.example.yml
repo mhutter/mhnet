@@ -98,6 +98,23 @@ all:
               user: "me:<secret: password>"
               title: Work notes
 
+    firefly:
+      hosts:
+        hbc-firefly:
+          ansible_host: 2001:db8:5::1
+          cloudflared_tunnel_id: "<tunnel id>"
+          cloudflared_tunnel_token: "<secret: tunnel token>"
+          backup_b2_account_id: "<B2 key id>"
+          backup_b2_account_key: "<secret: B2 key>"
+          backup_restic_password: "<secret -- keep an offsite copy>"
+
+          firefly_app_hostname: fin.example.com
+          firefly_site_owner: me@example.com
+          # APP_KEY, exactly 32 characters: `openssl rand -base64 24`.
+          # Keep an offsite copy next to backup_restic_password: without it
+          # the encrypted database columns cannot be read back.
+          firefly_app_key: "<secret>"
+
     monitoring:
       hosts:
         hbc-monitoring:

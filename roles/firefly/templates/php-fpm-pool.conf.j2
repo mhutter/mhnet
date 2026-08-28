@@ -1,0 +1,27 @@
+; Managed by Ansible (roles/firefly).
+; Runs Firefly III as its own system user, which doubles as the PostgreSQL
+; role for peer authentication over the local socket.
+
+[firefly]
+user = {{ firefly_user }}
+group = {{ firefly_user }}
+
+listen = {{ firefly_fpm_socket }}
+listen.owner = www-data
+listen.group = www-data
+listen.mode = 0660
+
+; No workers on an idle host; they start on the first request.
+pm = ondemand
+pm.max_children = {{ firefly_fpm_max_children }}
+pm.process_idle_timeout = {{ firefly_fpm_idle_timeout }}
+pm.max_requests = 500
+
+; PHP notices and warnings end up in the journal via php-fpm.
+catch_workers_output = yes
+php_admin_flag[log_errors] = on
+
+php_admin_value[memory_limit] = {{ firefly_fpm_memory_limit }}
+php_admin_value[upload_max_filesize] = {{ firefly_upload_max_size }}
+php_admin_value[post_max_size] = {{ firefly_upload_max_size }}
+php_admin_value[date.timezone] = {{ firefly_timezone }}

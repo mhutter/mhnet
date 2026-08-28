@@ -1,0 +1,105 @@
+---
+# Firefly III is not packaged in Debian; the role installs a pinned release
+# tarball from GitHub -- bump firefly_version and re-run to update. The
+# releases ship with vendor/ and the built frontend, so neither composer nor
+# npm is needed on the host. GitHub is IPv4-only, hence the dns64 role.
+firefly_version: "v6.6.6"
+firefly_tarball: "FireflyIII-{{ firefly_version }}.tar.gz"
+firefly_release_url: "https://github.com/firefly-iii/firefly-iii/releases\
+  /download/{{ firefly_version }}/{{ firefly_tarball }}"
+firefly_download_dir: /var/cache/firefly
+
+# Firefly III 6.6 requires PHP >= 8.5, which is what Ubuntu 26.04 ships.
+# Bump on a distro upgrade: the pool config path and the package names below
+# are version-specific.
+firefly_php_version: "8.5"
+
+# Everything not in php{{ version }}-common: bcmath, curl, intl, mbstring,
+# pgsql and xml are required by composer.json, gd and zip by the attachment
+# and export code paths.
+firefly_php_packages:
+  - "php{{ firefly_php_version }}-fpm"
+  - "php{{ firefly_php_version }}-cli"
+  - "php{{ firefly_php_version }}-bcmath"
+  - "php{{ firefly_php_version }}-curl"
+  - "php{{ firefly_php_version }}-gd"
+  - "php{{ firefly_php_version }}-intl"
+  - "php{{ firefly_php_version }}-mbstring"
+  - "php{{ firefly_php_version }}-pgsql"
+  - "php{{ firefly_php_version }}-xml"
+  - "php{{ firefly_php_version }}-zip"
+
+# Releases are unpacked side by side and switched over by the `current`
+# symlink, so a botched upgrade is one symlink away from a rollback.
+firefly_dir: /var/www/firefly-iii
+firefly_release_dir: "{{ firefly_dir }}/releases/{{ firefly_version }}"
+firefly_current_dir: "{{ firefly_dir }}/current"
+
+# State that must survive an upgrade: attachments (storage/upload), the
+# Passport keys backing API tokens, caches and logs. Symlinked into every
+# release as its storage/ directory.
+firefly_storage_dir: /var/lib/firefly-iii/storage
+firefly_config_dir: /etc/firefly-iii
+
+# The php-fpm pool, the cron unit and the owning database role all use this
+# system user, so PostgreSQL authenticates it by peer over the local socket.
+firefly_user: firefly
+
+firefly_db_name: firefly
+firefly_db_user: "{{ firefly_user }}"
+
+# cloudflared talks to nginx over this socket, and nginx to php-fpm over the
+# other; no TCP port is opened. The directory is a tmpfiles.d entry.
+firefly_runtime_dir: /run/firefly
+firefly_listen_socket: "{{ firefly_runtime_dir }}/nginx.sock"
+firefly_fpm_socket: "{{ firefly_runtime_dir }}/php-fpm.sock"
+
+# php-fpm workers: `ondemand` leaves an idle host with no PHP processes at
+# all, and a single user needs no concurrency worth the name. Four is room
+# for a browsing session next to a long-running import without letting the
+# worst case (every worker at firefly_fpm_memory_limit) crowd out PostgreSQL
+# on a 2 GB host.
+firefly_fpm_max_children: 4
+firefly_fpm_idle_timeout: 60s
+firefly_fpm_memory_limit: 512M
+
+# opcache. The release ships ~17k PHP files, of which a request touches a
+# fraction -- but the default 10k ceiling is close enough to be worth
+# raising, and 192 MB of shared cache is affordable at 2 GB. Timestamp
+# validation is off: nginx resolves the `current` symlink before passing
+# SCRIPT_FILENAME, so a new release has new cache keys anyway, and the role
+# restarts php-fpm when it switches. Editing files in place on the host
+# therefore has no effect until php-fpm is restarted by hand.
+firefly_opcache_memory_mb: 192
+firefly_opcache_max_files: 20000
+firefly_opcache_interned_strings_mb: 16
+
+# Attachment/import upload ceiling (nginx and PHP are kept in sync).
+firefly_upload_max_size: 32M
+
+# Locales Firefly III may render in. The base packages register the whole
+# de_* set (de_CH, de_DE, ...); the role runs locale-gen after installing
+# them, since the locales are otherwise registered but never compiled.
+firefly_language_packs:
+  - language-pack-de-base
+
+firefly_timezone: Europe/Zurich
+firefly_language: de_CH
+firefly_locale: equal
+
+# Recurring transactions, auto-budgets, subscription warnings and exchange
+# rates only happen when this runs.
+firefly_cron_oncalendar: "*-*-* 02:15:00"
+firefly_cron_randomized_delay: 15m
+
+# Stubs -- replace before relying on this deployment.
+firefly_app_hostname: "fin.CHANGEME.invalid"
+# SITE_OWNER: the address Firefly III sends its (rare) mails from/to.
+firefly_site_owner: "mail@CHANGEME.invalid"
+# APP_KEY, exactly 32 characters: `openssl rand -base64 24`. Losing it makes
+# the encrypted parts of the database unreadable -- keep it with the backup
+# password.
+firefly_app_key: CHANGEME
+
+# Exposure via Cloudflare tunnel is handled by the cloudflared role; see
+# roles/cloudflared/defaults/main.yml for the required inventory variables.

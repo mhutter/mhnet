@@ -264,21 +264,24 @@
     - { section: server, option: root_url, value: "https://{{ monitoring_grafana_hostname }}" }
     - { section: security, option: admin_password, value: "{{ grafana_admin_password }}" }
     - { section: analytics, option: reporting_enabled, value: "false" }
+    - { section: plugins, option: preinstall, value: "{{ monitoring_hub_grafana_plugins | join(',') }}" }
+    - { section: plugins, option: disable_plugins, value: "{{ monitoring_hub_grafana_disabled_plugins | join(',') }}" }
   loop_control:
     label: "{{ item.section }}/{{ item.option }}"
   notify: restart grafana
 
-# The CLI needs --homepath to find its config defaults, and --pluginsDir
-# because those defaults point inside the homepath rather than at the dir
-# grafana-server actually loads plugins from.
-- name: Install the VictoriaLogs Grafana datasource plugin
-  ansible.builtin.command: >-
-    grafana cli --homepath /usr/share/grafana
-    --pluginsDir /var/lib/grafana/plugins
-    plugins install victoriametrics-logs-datasource
-  args:
-    creates: /var/lib/grafana/plugins/victoriametrics-logs-datasource
-  notify: restart grafana
+# Grafana downloads the preinstalled plugins itself, as the grafana user, so
+# the directory has to be writable by it: the deb leaves it to whoever
+# created it, and a root-owned one makes every install fail with "permission
+# denied" -- leaving the prometheus plugin missing and every VictoriaMetrics
+# query erroring with "plugin not registered".
+- name: Create the Grafana plugin directory
+  ansible.builtin.file:
+    path: /var/lib/grafana/plugins
+    state: directory
+    owner: grafana
+    group: grafana
+    mode: "0755"
 
 - name: Provision Grafana datasources
   ansible.builtin.template:

@@ -26,3 +26,30 @@ monitoring_hub_ipv6: "{{ ansible_facts.default_ipv6.address }}"
 
 # ACME account mail for expiry notices; empty registers without one.
 monitoring_hub_acme_email: ""
+
+# Grafana 13.2 externalised its core datasource plugins: they are no longer
+# in the deb but downloaded from grafana.com at startup. Preinstall the two
+# this hub actually uses -- "prometheus" backs the VictoriaMetrics
+# datasource -- and disable the rest of Grafana's default preinstall list,
+# which would otherwise pull ~450 MB of unused plugins onto the VPS.
+monitoring_hub_grafana_plugins:
+  - prometheus
+  - victoriametrics-logs-datasource
+monitoring_hub_grafana_disabled_plugins:
+  - elasticsearch
+  - grafana-advisor-app
+  - grafana-exploretraces-app
+  - grafana-lokiexplore-app
+  - grafana-metricsdrilldown-app
+  - grafana-postgresql-datasource
+  - grafana-pyroscope-app
+  - grafana-pyroscope-datasource
+  - influxdb
+  - jaeger
+  - loki
+  - mssql
+  - mysql
+  - opentsdb
+  - stackdriver
+  - tempo
+  - zipkin

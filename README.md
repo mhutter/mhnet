@@ -58,6 +58,17 @@ Operational notes:
   ships 259) for journal-upload's `Header=` auth.
 - VictoriaLogs is not packaged in Debian; the role installs a pinned static
   binary — bump `monitoring_hub_victorialogs_version` and re-run to update.
+- Grafana datasource plugins: since Grafana 13.2 the core datasources are no
+  longer in the deb but downloaded from grafana.com on startup, so
+  `/var/lib/grafana/plugins` must stay writable by the `grafana` user (a
+  root-owned one breaks every query with "plugin not registered"). The role
+  preinstalls only `prometheus` (which backs the VictoriaMetrics datasource)
+  and `victoriametrics-logs-datasource` via `[plugins] preinstall`, and
+  disables the rest of Grafana's default preinstall list through
+  `disable_plugins` — see `monitoring_hub_grafana_plugins` /
+  `monitoring_hub_grafana_disabled_plugins`. Grafana keeps them updated
+  itself; if a new Grafana release adds unwanted plugins to its defaults,
+  add them to the disabled list.
 - Backups: a pre-hook snapshots VictoriaMetrics (restore: restic-restore the
   snapshot and copy its contents into an empty `/var/lib/victoria-metrics`)
   and dumps Grafana's SQLite db. VictoriaLogs data is deliberately not

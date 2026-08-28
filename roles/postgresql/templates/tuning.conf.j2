@@ -1,0 +1,23 @@
+# Managed by Ansible (roles/postgresql).
+# Drop-in read from conf.d, so the packaged postgresql.conf stays pristine.
+# The memory settings scale with the host ({{ ansible_facts['memtotal_mb'] }} MB here);
+# override any of them per host from the inventory.
+
+# Deliberately below the usual 25% rule of thumb: on these hosts the app --
+# not PostgreSQL -- is the other large consumer of RAM.
+shared_buffers = {{ postgresql_shared_buffers_mb }}MB
+effective_cache_size = {{ postgresql_effective_cache_size_mb }}MB
+maintenance_work_mem = {{ postgresql_maintenance_work_mem_mb }}MB
+work_mem = {{ postgresql_work_mem_mb }}MB
+
+# Single-app hosts: a handful of app workers, a cron job and the backup dump.
+# The default 100 mostly reserves memory for connections that never arrive.
+max_connections = {{ postgresql_max_connections }}
+
+# All fleet hosts are on SSD/NVMe, where a random read costs about what a
+# sequential one does and the device happily serves many at a time.
+random_page_cost = {{ postgresql_random_page_cost }}
+effective_io_concurrency = {{ postgresql_effective_io_concurrency }}
+{% for key, value in postgresql_extra_settings | dictsort %}
+{{ key }} = {{ value }}
+{% endfor %}

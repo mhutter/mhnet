@@ -3,3 +3,19 @@
 # postgresql_database_name  -- database to create (required)
 # postgresql_database_owner -- owning role, created without a password
 postgresql_database_owner: "{{ postgresql_database_name }}"
+
+# --- tuning (rendered into conf.d/10-tuning.conf) ---
+# Derived from the host's RAM; override individually from the inventory. A
+# change here restarts PostgreSQL, so app roles briefly lose their database.
+postgresql_shared_buffers_mb: "{{ (ansible_memtotal_mb * 0.20) | round | int }}"
+postgresql_effective_cache_size_mb: >-
+  {{ (ansible_memtotal_mb * 0.50) | round | int }}
+postgresql_maintenance_work_mem_mb: >-
+  {{ [(ansible_memtotal_mb * 0.05) | round | int, 256] | min }}
+postgresql_work_mem_mb: 8
+postgresql_max_connections: 20
+postgresql_random_page_cost: 1.1
+postgresql_effective_io_concurrency: 200
+
+# Anything else to append to the drop-in, e.g. {logging_collector: "on"}.
+postgresql_extra_settings: {}

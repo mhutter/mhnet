@@ -17,6 +17,61 @@
     enabled: true
     state: started
 
+# --- tuning ---
+
+# Debian keeps one config tree per cluster; these hosts run the single
+# packaged "main" cluster of whatever major version the release ships.
+- name: Find the PostgreSQL cluster configuration
+  ansible.builtin.find:
+    paths: /etc/postgresql
+    file_type: directory
+    depth: 1
+  register: postgresql_clusters
+
+- name: Ensure exactly one PostgreSQL cluster was found
+  ansible.builtin.assert:
+    that:
+      - postgresql_clusters.files | length == 1
+    fail_msg: >-
+      Expected a single cluster below /etc/postgresql on
+      {{ inventory_hostname }}, found
+      {{ postgresql_clusters.files | map(attribute="path") | list }}. A major
+      version upgrade probably left the old cluster behind; drop it with
+      pg_dropcluster once its data has been migrated.
+
+- name: Note the cluster configuration directory
+  ansible.builtin.set_fact:
+    postgresql_conf_dir: "{{ postgresql_clusters.files[0].path }}/main"
+
+# Debian has read conf.d since 9.4, so check rather than patch: the packaged
+# postgresql.conf stays untouched, and a surprise here is worth looking at.
+- name: Check that conf.d drop-ins are read
+  ansible.builtin.command:
+    cmd: >-
+      grep -Eq "^[[:space:]]*include_dir[[:space:]]*=[[:space:]]*'conf[.]d'"
+      {{ postgresql_conf_dir }}/postgresql.conf
+  register: postgresql_include_dir
+  changed_when: false
+  failed_when: false
+
+- name: Ensure conf.d drop-ins are read
+  ansible.builtin.assert:
+    that:
+      - postgresql_include_dir.rc == 0
+    fail_msg: >-
+      {{ postgresql_conf_dir }}/postgresql.conf does not read conf.d, so the
+      tuning drop-in would be ignored. Add `include_dir = 'conf.d'` to it by
+      hand (Debian ships it enabled) and re-run.
+
+- name: Tune PostgreSQL for this host
+  ansible.builtin.template:
+    src: tuning.conf.j2
+    dest: "{{ postgresql_conf_dir }}/conf.d/10-tuning.conf"
+    owner: postgres
+    group: postgres
+    mode: "0644"
+  notify: restart postgresql
+
 # --- Backups ---
 
 - name: Ensure backup drop-in directories exist

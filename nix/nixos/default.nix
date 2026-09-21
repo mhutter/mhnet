@@ -12,6 +12,7 @@
     ./nix.nix
 
     ## Services
+    ../services/postgresql.nix
     ../services/tailscale.nix
   ];
 }

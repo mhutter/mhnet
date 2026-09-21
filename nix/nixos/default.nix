@@ -1,6 +1,7 @@
 { ... }:
 {
   imports = [
+    ## NixOS configuration
     ./boot.nix
     ./configuration.nix
     ./disks.nix
@@ -9,5 +10,8 @@
     ./persistence.nix
     ./users.nix
     ./nix.nix
+
+    ## Services
+    ../services/tailscale.nix
   ];
 }

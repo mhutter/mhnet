@@ -2,6 +2,7 @@
 {
   imports = [
     ## NixOS configuration
+    ./auto-upgrade.nix
     ./boot.nix
     ./configuration.nix
     ./disks.nix
@@ -13,6 +14,7 @@
 
     ## Modules
     ../modules/backup.nix
+    ../modules/notify.nix
 
     ## Services
     ../services/postgresql.nix

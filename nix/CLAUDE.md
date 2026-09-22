@@ -40,7 +40,8 @@ Secrets, inside direnv / `nix develop`: `agenix -e secrets/<name>.age`,
 - `services/` — one file per service.
 - `secrets/*.age`, `secrets.nix` — agenix; the age identity is the SSH host key.
 - `docs/` — `bootstrap.md` (install, verification, disk replacement),
-  `backup.md`, `postgresql.md`.
+  `backup.md`, `postgresql.md`, `updates.md`.
+- `.github/workflows/update-lock.yml` — the only thing that bumps `flake.lock`.
 
 ## Before editing
 
@@ -64,6 +65,13 @@ Secrets, inside direnv / `nix develop`: `agenix -e secrets/<name>.age`,
   `postgresql-password-<app>.service` units, never via the nix store. Removing an
   app drops nothing. PostgreSQL contributes its own backup hook (dumps, not the
   live cluster), so app modules need none.
+- **`mhnet.notify`** (`modules/notify.nix`) — modules append unit names to
+  `units` to get an `OnFailure=` ntfy push. The hourly Healthchecks heartbeat is
+  the dead-man switch and must stay out of `units`: its failure is already
+  reported by the silence it causes.
+- **`system.autoUpgrade`** (`nixos/auto-upgrade.nix`) — deploys `main` from
+  GitHub on a timer, **not** the working tree `just` rsyncs over. Uncommitted
+  state on the host is reverted at the next run. `docs/updates.md`.
 - **Deliberate, not gaps:** no swap or zram, and unallocated VG space left as
   growth headroom for both mounts.
 

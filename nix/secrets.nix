@@ -16,4 +16,6 @@ in
 {
   "secrets/restic-password.age".publicKeys = hostRhea;
   "secrets/restic-env.age".publicKeys = hostRhea;
+  "secrets/ntfy-url.age".publicKeys = hostRhea;
+  "secrets/healthchecks-url.age".publicKeys = hostRhea;
 }

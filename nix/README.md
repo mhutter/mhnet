@@ -9,3 +9,5 @@ the day-to-day recipes; everything else is in `docs/`:
   modules contribute paths and pre-backup hooks, restoring
 - [postgresql](docs/postgresql.md) — declaring per-app databases and roles,
   peer vs. password auth, rotating passwords
+- [updates](docs/updates.md) — unattended upgrades and their schedule, failure
+  and heartbeat alerting, garbage collection, recovering a bad one

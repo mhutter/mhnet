@@ -86,6 +86,10 @@ in
       ];
     };
 
+    # Until now a backup that stopped working was silent, and would only have
+    # surfaced at restore time.
+    mhnet.notify.units = map (name: "restic-backups-${name}.service") jobs;
+
     services.restic.backups = {
       # Daily: prepare hooks, then backup. No forget/prune here — that is the
       # weekly job below, so a slow prune never delays a backup.

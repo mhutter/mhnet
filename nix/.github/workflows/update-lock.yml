@@ -1,0 +1,46 @@
+name: update-lock
+
+# Bumps flake.lock on main. The host pulls main on its own timer — see
+# nixos/auto-upgrade.nix — so this is the only thing that makes updates happen.
+# `--upgrade` is a no-op for flake systems, nixos-rebuild only warns.
+on:
+  schedule:
+    # Tuesday 04:00 UTC: a day of lead time before the host upgrades on
+    # Wednesday morning, so a bad bump can be noticed or reverted first.
+    - cron: "0 4 * * 2"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  update:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: cachix/install-nix-action@v31
+        with:
+          extra_nix_config: |
+            experimental-features = nix-command flakes
+
+      - run: nix flake update
+
+      # The host refuses to activate a config that does not build, so this is
+      # not what keeps rhea alive — it keeps main green and leaves a readable
+      # log instead of a failure at 06:00 on Wednesday.
+      - name: Build the system closure
+        run: |
+          nix build --no-link --print-out-paths \
+            .#nixosConfigurations.rhea.config.system.build.toplevel
+
+      - name: Commit and push
+        run: |
+          if git diff --quiet flake.lock; then
+            echo "inputs unchanged, nothing to push"
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git commit -s -m "flake: bump inputs" flake.lock
+          git push

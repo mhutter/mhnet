@@ -58,7 +58,7 @@ Secrets, inside direnv / `nix develop`: `agenix -e secrets/<name>.age`,
 - `services/` — one file per service.
 - `secrets/*.age`, `secrets.nix` — agenix; the age identity is the SSH host key.
 - `docs/` — `bootstrap.md` (install, verification, disk replacement),
-  `backup.md`, `postgresql.md`, `updates.md`.
+  `backup.md`, `postgresql.md`, `proxy.md`, `updates.md`.
 - `.github/workflows/update-lock.yml` — the only thing that bumps `flake.lock`.
 
 ### Before editing
@@ -83,6 +83,13 @@ Secrets, inside direnv / `nix develop`: `agenix -e secrets/<name>.age`,
   `postgresql-password-<app>.service` units, never via the nix store. Removing an
   app drops nothing. PostgreSQL contributes its own backup hook (dumps, not the
   live cluster), so app modules need none.
+- **`mhnet.proxy.hosts`** (`modules/proxy.nix`) — Caddy, stock: the attribute
+  name is the hostname and the certificate subject. Adding a host is the whole
+  change; DNS records are manual and must stay DNS-only, or `allowFrom` matches
+  the proxy instead of the client. **No Caddy plugins** — `withPlugins` is an
+  xcaddy build behind a hand-maintained hash and would break the unattended
+  lock bump, which is why OIDC goes through `forwardAuth` and there is no
+  DNS-01. `docs/proxy.md`.
 - **`mhnet.notify`** (`modules/notify.nix`) — modules append unit names to
   `units` to get an `OnFailure=` ntfy push. The hourly Healthchecks heartbeat is
   the dead-man switch and must stay out of `units`: its failure is already

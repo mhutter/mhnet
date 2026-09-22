@@ -18,4 +18,5 @@ in
   "secrets/restic-env.age".publicKeys = hostRhea;
   "secrets/ntfy-url.age".publicKeys = hostRhea;
   "secrets/healthchecks-url.age".publicKeys = hostRhea;
+  "secrets/caddy-env.age".publicKeys = hostRhea;
 }

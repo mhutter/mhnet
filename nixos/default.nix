@@ -15,6 +15,7 @@
     ## Modules
     ../modules/backup.nix
     ../modules/notify.nix
+    ../modules/proxy.nix
 
     ## Services
     ../services/postgresql.nix

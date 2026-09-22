@@ -2,11 +2,13 @@
   config,
   pkgs,
   persist,
+  lib,
   ...
 }:
 let
   host = "immich.mhnet.app";
   dataDir = "${persist}/var/lib/immich";
+  cacheDir = "${persist}/var/cache/immich";
 
   cfg = config.services.immich;
 in
@@ -18,8 +20,14 @@ in
     "immich-server.service"
     "redis-immich.service"
   ];
-  systemd.tmpfiles.rules = [ "d ${dataDir} 0700 ${cfg.user} ${cfg.group}" ];
-  systemd.services.immich-server.serviceConfig.RequiresMountsFor = dataDir;
+  systemd.tmpfiles.rules = [
+    "d ${dataDir} 0700 ${cfg.user} ${cfg.group}"
+    "d ${cacheDir} 0700 ${cfg.user} ${cfg.group}"
+  ];
+  systemd.services.immich-server.unitConfig.RequiresMountsFor = dataDir;
+  systemd.services.immich-server.serviceConfig.StateDirectory = lib.mkForce "";
+  systemd.services.immich-machine-learning.unitConfig.RequiresMountsFor = cacheDir;
+  systemd.services.immich-machine-learning.serviceConfig.CacheDirectory = lib.mkForce "";
 
   services.immich = {
     enable = true;
@@ -40,5 +48,10 @@ in
     };
 
     mediaLocation = dataDir;
+
+    machine-learning.environment = {
+      MACHINE_LEARNING_CACHE_FOLDER = lib.mkForce cacheDir;
+      XDG_CACHE_HOME = lib.mkForce cacheDir;
+    };
   };
 }

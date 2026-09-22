@@ -40,6 +40,7 @@ in
       SB_UNIX_SOCKET = socketPath;
       # Plugs can otherwise run shell commands as the service user.
       SB_SHELL_BACKEND = "off";
+      SB_INDEX_PAGE = "Langmoos 22a";
     };
 
     serviceConfig = {

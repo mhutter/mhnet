@@ -122,13 +122,16 @@ ansible-vault edit ansible/inventory/hosts.yml              # edit secrets
   host groups; roles are tagged with their own name for selective runs
 - `ansible/playbooks/bootstrap.yml` — minimal `common`-only pass for brand-new
   hosts
+- `ansible/docs/` — one file per role that needs explaining (`backup`,
+  `cloudflared`, `postgresql`, `monitoring`, `silverbullet`, `firefly`),
+  linked from `README.md`
 - `scripts/` — shared with the NixOS half; `b2-create-restic-key.sh` mints the
   per-host B2 key both backup implementations use
 - `.vaultpass` — local vault password file (gitignored), used by
   `ansible.cfg`/`ansible-vault`
 
-See `README.md` for details on the `backup`, `cloudflared` and monitoring
-roles (onboarding a host, required vars, manual operations).
+See `ansible/docs/` for details on those roles (onboarding a host, required
+vars, manual operations).
 
 ## Secrets
 

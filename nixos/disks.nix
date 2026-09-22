@@ -69,7 +69,7 @@ in
         # linear, spans both PVs, no redundancy
         lvbulk = {
           priority = 200;
-          size = "1500G";
+          size = "2048G";
           content = {
             type = "filesystem";
             format = "ext4";

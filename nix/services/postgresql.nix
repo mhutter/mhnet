@@ -8,6 +8,10 @@
 let
   postgresql = pkgs.postgresql_18;
 
+  # Backups get dumps, never the live cluster. On ${persist} because / is tmpfs
+  # and a dump does not belong in RAM.
+  dumpDir = "${persist}/var/backups/postgresql";
+
   apps = config.mhnet.postgresql.apps;
   passwordApps = lib.filterAttrs (_: app: app.passwordFile != null) apps;
 
@@ -145,7 +149,37 @@ in
       {
         ${dirOf dataDir} = dir;
         ${dataDir} = dir;
+        # root-owned: the pre-backup hook runs as root and redirects into it,
+        # so postgres itself never needs write access here.
+        ${dumpDir}.d = {
+          mode = "0700";
+          user = "root";
+          group = "root";
+        };
       };
+
+    # Dumps every database plus the globals (roles, tablespaces), so app
+    # modules need no hooks of their own. The dumps are under ${persist} and
+    # thus already covered by mhnet.backup.paths.
+    mhnet.backup = {
+      # The whole parent, not just dataDir: a major-version upgrade leaves a
+      # sibling schema dir behind and that is cluster data too.
+      exclude = [ (dirOf config.services.postgresql.dataDir) ];
+      prepare = ''
+        rm -f ${dumpDir}/*.dump ${dumpDir}/globals.sql
+        ${pkgs.util-linux}/bin/runuser -u postgres -- \
+          ${config.services.postgresql.finalPackage}/bin/pg_dumpall --globals-only \
+          > ${dumpDir}/globals.sql
+        ${pkgs.util-linux}/bin/runuser -u postgres -- \
+          ${config.services.postgresql.finalPackage}/bin/psql --no-align --tuples-only \
+          --command 'SELECT datname FROM pg_database WHERE NOT datistemplate' \
+          | while read -r db; do
+              ${pkgs.util-linux}/bin/runuser -u postgres -- \
+                ${config.services.postgresql.finalPackage}/bin/pg_dump --format=custom "$db" \
+                > "${dumpDir}/$db.dump"
+            done
+      '';
+    };
 
     # `ensureUsers` has no passwordFile and its only password knob,
     # `ensureClauses.password`, would put the password in the world-readable

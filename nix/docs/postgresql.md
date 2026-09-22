@@ -42,7 +42,8 @@ has nothing to match.
 
 ### Adding a password app
 
-1. Add the secret to `secrets.nix`: `"pg-myapp.age".publicKeys = hostRhea;`
+1. Add the secret to `secrets.nix`: `"secrets/pg-myapp.age".publicKeys = hostRhea;`
+   — the key is the path `agenix` is invoked with, relative to `secrets.nix`.
 2. Create it: `agenix -e secrets/pg-myapp.age` (run inside `nix develop` / direnv)
 3. Declare it and point the app at it:
 

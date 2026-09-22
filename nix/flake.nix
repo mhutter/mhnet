@@ -61,7 +61,6 @@
             "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIENf5523OeX3ZEOJuAF9P5OLy+/S78UX7+xNC+O6AoD9" # mh@rotz2026
           ];
           persist = "/nix/persist";
-          secrets = import ./secrets.nix "rhea";
         };
       };
     };

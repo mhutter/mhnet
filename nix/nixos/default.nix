@@ -11,6 +11,9 @@
     ./users.nix
     ./nix.nix
 
+    ## Modules
+    ../modules/backup.nix
+
     ## Services
     ../services/postgresql.nix
     ../services/tailscale.nix

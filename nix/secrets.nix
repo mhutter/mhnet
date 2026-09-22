@@ -13,4 +13,7 @@ let
     rhea
   ];
 in
-{ }
+{
+  "secrets/restic-password.age".publicKeys = hostRhea;
+  "secrets/restic-env.age".publicKeys = hostRhea;
+}

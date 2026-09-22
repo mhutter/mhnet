@@ -127,6 +127,26 @@ in
       };
     };
 
+    # dataDir is not created automatically if outside `/var/lib/postgresql`.
+    # The parent is created too, mirroring upstream's `StateDirectory =
+    # "postgresql postgresql/<schema>"`, so postgres can lay down a sibling
+    # schema dir itself on a major-version upgrade.
+    systemd.tmpfiles.settings."10-postgresql" =
+      let
+        dir = {
+          d = {
+            mode = "0750";
+            user = "postgres";
+            group = "postgres";
+          };
+        };
+        dataDir = config.services.postgresql.dataDir;
+      in
+      {
+        ${dirOf dataDir} = dir;
+        ${dataDir} = dir;
+      };
+
     # `ensureUsers` has no passwordFile and its only password knob,
     # `ensureClauses.password`, would put the password in the world-readable
     # nix store. So the password is applied out of band, idempotently, on every

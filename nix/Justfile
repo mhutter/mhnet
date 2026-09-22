@@ -1,4 +1,4 @@
-host := "rhea.mhnet.dev"
+host := "rhea"
 port := "50642"
 remote_dir := "/nix/persist/home/mh/nixos-config"
 

@@ -1,10 +1,11 @@
 # rhea configuration
 
-## Secrets
+NixOS configuration for `rhea`, a Hetzner dedicated server. `just --list` shows
+the day-to-day recipes; everything else is in `docs/`:
 
-`secrets.nix` is keyed on the host's ssh key from step 5. From the devShell:
-
-```sh
-nix develop -c agenix -e <secret>.age
-nix develop -c agenix -r                   # rekey after changing recipients
-```
+- [bootstrap](docs/bootstrap.md) — hardware and disk layout, installing from
+  scratch, verifying the result, replacing a disk, editing secrets
+- [backup](docs/backup.md) — restic to Backblaze B2: what is backed up, how
+  modules contribute paths and pre-backup hooks, restoring
+- [postgresql](docs/postgresql.md) — declaring per-app databases and roles,
+  peer vs. password auth, rotating passwords

@@ -200,7 +200,7 @@ in
 
     # ${persist} is a separate LV; the upstream unit orders itself against
     # /var/lib only.
-    systemd.services.caddy.serviceConfig.RequiresMountsFor = dataDir;
+    systemd.services.caddy.unitConfig.RequiresMountsFor = dataDir;
 
     mhnet.notify.units = [ "caddy.service" ];
   };

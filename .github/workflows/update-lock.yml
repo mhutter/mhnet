@@ -40,7 +40,7 @@ jobs:
             echo "inputs unchanged, nothing to push"
             exit 0
           fi
-          git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git commit -s -m "flake: bump inputs" flake.lock
+          git config user.name "Manuel Hutter"
+          git config user.email "mhutter@users.noreply.github.com"
+          git commit -m "flake: bump inputs" flake.lock
           git push

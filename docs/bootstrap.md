@@ -68,7 +68,8 @@ From the workstation:
 
 ```sh
 rsync -a --delete --exclude .git --exclude .direnv \
-  ~/code/rhea/ root@rhea.mhnet.dev:/root/nixos-config/
+  --exclude .env --exclude .vaultpass --exclude /ansible \
+  ~/code/mhnet/ root@rhea.mhnet.dev:/root/nixos-config/
 ```
 
 `flake.lock` must be included — it is what pins disko.

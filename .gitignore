@@ -1,4 +1,11 @@
+## Ansible
 .ansible/
-*.tgz
 .vaultpass
 /hosts.xml
+*.tgz
+
+## Nix
+result
+bootstrap/flake.lock
+
+.claude/

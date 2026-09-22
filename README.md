@@ -1,4 +1,24 @@
-# mhnet Ansible
+# mhnet
+
+Personal infrastructure: `rhea`, a Hetzner dedicated server running NixOS, and
+a fleet of cheap VPS managed with Ansible. `just --list` shows the day-to-day
+recipes for both.
+
+## NixOS — rhea
+
+`flake.nix`, `nixos/`, `modules/` and `services/` are `rhea`'s configuration;
+the details are in `docs/`:
+
+- [bootstrap](docs/bootstrap.md) — hardware and disk layout, installing from
+  scratch, verifying the result, replacing a disk, editing secrets
+- [backup](docs/backup.md) — restic to Backblaze B2: what is backed up, how
+  modules contribute paths and pre-backup hooks, restoring
+- [postgresql](docs/postgresql.md) — declaring per-app databases and roles,
+  peer vs. password auth, rotating passwords
+- [updates](docs/updates.md) — unattended upgrades and their schedule, failure
+  and heartbeat alerting, garbage collection, recovering a bad one
+
+Everything below documents the Ansible side.
 
 ## Monitoring
 

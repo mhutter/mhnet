@@ -80,6 +80,12 @@ in
       serviceConfig = extraServiceConfig;
     };
 
+    # A LibreOffice listener that only speeds up office-format conversion —
+    # unused here, since nothing but PDFs is uploaded. It cannot work anyway:
+    # unoconv 0.9.0 calls LooseVersion from the long-removed distutils, so it
+    # dies on LibreOffice's Python 3.13 before it ever launches soffice.
+    unoconv.enable = false;
+
     docspell-db-env = {
       description = "Render docspell's database password into an environment file";
       requiredBy = docspellUnits;

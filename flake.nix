@@ -1,6 +1,7 @@
 {
   inputs = {
     nixpkgs.url = "github:NixOS/nixpkgs/nixos-26.05";
+    nixpkgs-unstable.url = "github:NixOS/nixpkgs/nixos-unstable";
 
     agenix = {
       url = "github:ryantm/agenix";
@@ -31,6 +32,7 @@
     {
       self,
       nixpkgs,
+      nixpkgs-unstable,
       agenix,
       disko,
       docspell,
@@ -38,10 +40,22 @@
     }:
     let
       system = "x86_64-linux";
-      pkgs = nixpkgs.legacyPackages.${system};
+      pkgs = import nixpkgs {
+        inherit system;
+
+        overlays = [
+          docspell.overlays.default
+          (final: prev: {
+            unstable = import nixpkgs-unstable { inherit system; };
+          })
+        ];
+        ## Add allowed "unfree" packages here
+        # config.allowUnfreePredicate = pkg: builtins.elem (nixpkgs.lib.getname pkg) [ ];
+      };
+
     in
     {
-      devShells."${system}".default = pkgs.mkShell {
+      devShells.${system}.default = pkgs.mkShell {
         packages = [
           agenix.packages.${system}.default
           pkgs.apt-dater
@@ -53,16 +67,7 @@
       };
 
       nixosConfigurations.rhea = nixpkgs.lib.nixosSystem {
-        inherit system;
-
-        pkgs = import nixpkgs {
-          inherit system;
-
-          overlays = [ docspell.overlays.default ];
-
-          ## Add allowed "unfree" packages here
-          # config.allowUnfreePredicate = pkg: builtins.elem (nixpkgs.lib.getname pkg) [ ];
-        };
+        inherit pkgs system;
 
         modules = [
           ./nixos

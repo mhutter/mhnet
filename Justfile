@@ -39,7 +39,7 @@ build: (rebuild "build")
 # evaluate the flake locally and only copy the derivations over.
 [private]
 rebuild op: sync
-    ssh -t -p {{ port }} {{ host }} 'sudo nixos-rebuild -L {{ op }} --flake {{ remote_dir }}#rhea'
+    ssh -t -p {{ port }} {{ host }} 'sudo nixos-rebuild -L {{ op }} --flake {{ remote_dir }}#rhea --option abort-on-warn true --show-trace'
 
 ## Ansible
 

@@ -19,6 +19,7 @@
 
     ## Services
     ../services/docspell.nix
+    ../services/immich.nix
     ../services/postgresql.nix
     ../services/tailscale.nix
   ];

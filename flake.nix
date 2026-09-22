@@ -14,6 +14,12 @@
       inputs.nixpkgs.follows = "nixpkgs";
     };
 
+    docspell = {
+      url = "github:eikek/docspell";
+      inputs.nixpkgs.follows = "nixpkgs";
+      inputs.devshell-tools.follows = "";
+    };
+
     impermanence = {
       url = "github:nix-community/impermanence";
       inputs.home-manager.follows = "";
@@ -27,6 +33,7 @@
       nixpkgs,
       agenix,
       disko,
+      docspell,
       impermanence,
     }:
     let
@@ -51,6 +58,8 @@
         pkgs = import nixpkgs {
           inherit system;
 
+          overlays = [ docspell.overlays.default ];
+
           ## Add allowed "unfree" packages here
           # config.allowUnfreePredicate = pkg: builtins.elem (nixpkgs.lib.getname pkg) [ ];
         };
@@ -59,6 +68,7 @@
           ./nixos
           agenix.nixosModules.default
           disko.nixosModules.disko
+          docspell.nixosModules.default
           impermanence.nixosModules.default
         ];
 

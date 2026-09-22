@@ -18,6 +18,7 @@
     ../modules/proxy.nix
 
     ## Services
+    ../services/docspell.nix
     ../services/postgresql.nix
     ../services/tailscale.nix
   ];

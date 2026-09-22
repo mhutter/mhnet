@@ -26,16 +26,16 @@ ends up hosting more than one instance of the same purpose.
 
 ## Layout
 
-- `inventory/hosts.yml` — fully Ansible Vault-encrypted; hosts, groups, and all
+- `ansible/inventory/hosts.yml` — fully Ansible Vault-encrypted; hosts, groups, and all
   vars (secrets included) live here
-- `inventory.example.yml` — unencrypted skeleton of the above, documenting
+- `ansible/inventory.example.yml` — unencrypted skeleton of the above, documenting
   every required var; keep in sync when roles gain inventory vars
-- `roles/` — `common`, `firewall`, `backup`, `cloudflared`, `postgresql`,
+- `ansible/roles/` — `common`, `firewall`, `backup`, `cloudflared`, `postgresql`,
   `dns64`, `monitoring_agent` apply broadly; `pocket_id`, `miniflux`,
   `silverbullet`, `firefly`, `monitoring_hub` are per-app
-- `playbooks/site.yml` — main playbook, run against `all` plus per-app host
+- `ansible/playbooks/site.yml` — main playbook, run against `all` plus per-app host
   groups; roles are tagged with their own name for selective runs
-- `playbooks/bootstrap.yml` — minimal `common`-only pass for brand-new hosts
+- `ansible/playbooks/bootstrap.yml` — minimal `common`-only pass for brand-new hosts
 - `.vaultpass` — local vault password file (gitignored), used by
   `ansible.cfg`/`ansible-vault`
 
@@ -45,15 +45,15 @@ roles (onboarding a host, required vars, manual operations).
 ## Running
 
 ```sh
-ansible-playbook playbooks/site.yml               # full run
-ansible-playbook playbooks/site.yml --tags miniflux # single role
-just bootstrap                                     # bootstrap a new host
-ansible-vault edit inventory/hosts.yml             # edit secrets
+ansible-playbook ansible/playbooks/site.yml                 # full run
+ansible-playbook ansible/playbooks/site.yml --tags miniflux # single role
+just bootstrap                                              # bootstrap a new host
+ansible-vault edit ansible/inventory/hosts.yml              # edit secrets
 ```
 
 ## Secrets
 
 Never generate secrets, edit vaulted inventory values, or print decrypted
 vault contents yourself — hand these to the user with the exact command to
-run (e.g. `ansible-vault edit inventory/hosts.yml`, `openssl rand -base64
+run (e.g. `ansible-vault edit ansible/inventory/hosts.yml`, `openssl rand -base64
 32`).

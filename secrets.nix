@@ -22,4 +22,5 @@ in
   "secrets/pg-docspell.age".publicKeys = hostRhea;
   "secrets/restic-env.age".publicKeys = hostRhea;
   "secrets/restic-password.age".publicKeys = hostRhea;
+  "secrets/silverbullet-env.age".publicKeys = hostRhea;
 }

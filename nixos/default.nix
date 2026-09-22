@@ -21,6 +21,7 @@
     ../services/docspell.nix
     ../services/immich.nix
     ../services/postgresql.nix
+    ../services/silverbullet.nix
     ../services/tailscale.nix
   ];
 }

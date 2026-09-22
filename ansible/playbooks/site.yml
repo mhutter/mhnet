@@ -37,15 +37,6 @@
     - role: miniflux
       tags: miniflux
 
-- hosts: silverbullet
-  become: true
-  roles:
-    # NAT64 for github.com, where the pinned release binary comes from.
-    - role: dns64
-      tags: dns64
-    - role: silverbullet
-      tags: silverbullet
-
 - hosts: firefly
   become: true
   roles:

@@ -9,7 +9,7 @@
   # left on the host is silently reverted by the next run.
   system.autoUpgrade = {
     enable = true;
-    flake = "github:mhutter/rhea";
+    flake = "github:mhutter/mhnet";
     operation = "switch";
 
     # A no-op for flake systems — nixos-rebuild only warns. The lock is bumped

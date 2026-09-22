@@ -8,7 +8,7 @@ someone is awake.
 | When                      | What                                                                                                                                                          |
 | ------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | Tue 04:00 UTC             | GitHub Actions `update-lock` runs `nix flake update`, builds the system closure, pushes `flake: bump inputs` to `main`                                        |
-| Wed 06:00 UTC (+0–10 min) | `nixos-upgrade.service` runs `nixos-rebuild boot --refresh --flake github:mhutter/rhea`, then `switch` if the kernel is unchanged, or `shutdown -r +1` if not |
+| Wed 06:00 UTC (+0–10 min) | `nixos-upgrade.service` runs `nixos-rebuild boot --refresh --flake github:mhutter/mhnet`, then `switch` if the kernel is unchanged, or `shutdown -r +1` if not |
 | Thu 02:00 UTC             | `nix-gc`, `--delete-older-than 90d`                                                                                                                           |
 
 `nixpkgs` is pinned to a release branch, so what arrives is backports and

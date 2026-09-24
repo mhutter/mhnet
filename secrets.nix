@@ -18,6 +18,7 @@ in
   "secrets/docspell-env.age".publicKeys = hostRhea;
   "secrets/healthchecks-url.age".publicKeys = hostRhea;
   "secrets/immich-oauth-client-secret.age".publicKeys = hostRhea;
+  "secrets/miniflux-env.age".publicKeys = hostRhea;
   "secrets/ntfy-url.age".publicKeys = hostRhea;
   "secrets/pg-docspell.age".publicKeys = hostRhea;
   "secrets/restic-env.age".publicKeys = hostRhea;

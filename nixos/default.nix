@@ -20,6 +20,7 @@
     ## Services
     ../services/docspell.nix
     ../services/immich.nix
+    ../services/miniflux.nix
     ../services/postgresql.nix
     ../services/silverbullet.nix
     ../services/tailscale.nix

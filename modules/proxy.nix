@@ -202,6 +202,60 @@ in
     # /var/lib only.
     systemd.services.caddy.unitConfig.RequiresMountsFor = dataDir;
 
+    # A drop-in over the unit shipped with the caddy package, so the capability
+    # lists need an empty entry first: they would otherwise append to it.
+    # CAP_NET_ADMIN is in that unit only so quic-go can force its UDP buffer
+    # sizes; the sysctls below do the same without handing Caddy the capability.
+    systemd.services.caddy.serviceConfig = {
+      AmbientCapabilities = [
+        ""
+        "CAP_NET_BIND_SERVICE"
+      ];
+      CapabilityBoundingSet = [
+        ""
+        "CAP_NET_BIND_SERVICE"
+      ];
+
+      # dataDir is already in the module's ReadWritePaths, the access logs in
+      # its LogsDirectory.
+      ProtectSystem = "strict";
+      ProtectProc = "invisible";
+      ProcSubset = "pid";
+      ProtectClock = true;
+      ProtectHostname = true;
+      ProtectControlGroups = true;
+      ProtectKernelTunables = true;
+      ProtectKernelModules = true;
+      ProtectKernelLogs = true;
+      RestrictAddressFamilies = [
+        "AF_INET"
+        "AF_INET6"
+        "AF_UNIX"
+        "AF_NETLINK"
+      ];
+      RestrictNamespaces = true;
+      RestrictSUIDSGID = true;
+      RestrictRealtime = true;
+      LockPersonality = true;
+      # Go does not JIT.
+      MemoryDenyWriteExecute = true;
+      SystemCallFilter = [ "@system-service" ];
+      SystemCallErrorNumber = "EPERM";
+      SystemCallArchitectures = "native";
+      RemoveIPC = true;
+      DevicePolicy = "closed";
+      # No PrivateUsers: CAP_NET_BIND_SERVICE in a user namespace does not
+      # reach the host's network namespace, so 80 and 443 would fail to bind.
+    };
+
+    # Replaces CAP_NET_ADMIN: without it quic-go cannot raise its own UDP
+    # buffers and logs a warning on every start. 7.5 MB is Caddy's documented
+    # value.
+    boot.kernel.sysctl = {
+      "net.core.rmem_max" = 7500000;
+      "net.core.wmem_max" = 7500000;
+    };
+
     mhnet.notify.units = [ "caddy.service" ];
   };
 }

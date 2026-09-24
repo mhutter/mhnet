@@ -76,8 +76,9 @@ in
       LockPersonality = true;
       RemoveIPC = true;
       MemoryDenyWriteExecute = true;
-      CapabilityBoundingSet = [ ];
-      AmbientCapabilities = [ ];
+      # An empty list would render no line at all and leave the default set.
+      CapabilityBoundingSet = "";
+      AmbientCapabilities = "";
       SystemCallFilter = [ "@system-service" ];
       SystemCallErrorNumber = "EPERM";
     };

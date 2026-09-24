@@ -1,4 +1,8 @@
-{ config, ... }:
+{
+  config,
+  lib,
+  ...
+}:
 let
   domain = "dms.mhnet.app";
   port = 7880;
@@ -34,6 +38,60 @@ let
       dbEnvFile
     ];
     Restart = "always";
+  };
+
+  # The upstream module leaves User= unset and drops to the docspell user with
+  # su(1) inside the script, so every sandbox setting below would wrap su
+  # instead of the JVM. Rebuild its command (nix/modules/{server,joex}.nix) and
+  # run it as the user from the start.
+  mkExec =
+    svc: exe:
+    "${lib.getExe' svc.package exe} ${lib.escapeShellArgs svc.jvmArgs} -- ${
+      if svc.configFile == null then "/etc/${exe}.conf" else "${svc.configFile}"
+    }";
+
+  hardening = {
+    User = "docspell";
+    Group = "docspell";
+
+    NoNewPrivileges = true;
+    # joex' converters write their scratch files here
+    PrivateTmp = true;
+    PrivateDevices = true;
+    PrivateUsers = true;
+    ProtectSystem = "strict";
+    ProtectHome = true;
+    ProtectClock = true;
+    ProtectHostname = true;
+    ProtectControlGroups = true;
+    ProtectKernelTunables = true;
+    ProtectKernelModules = true;
+    ProtectKernelLogs = true;
+    ProtectProc = "invisible";
+    ProcSubset = "pid";
+    # JDBC over the postgresql socket, plus outbound SMTP and HTTP from joex.
+    RestrictAddressFamilies = [
+      "AF_UNIX"
+      "AF_INET"
+      "AF_INET6"
+    ];
+    RestrictNamespaces = true;
+    RestrictSUIDSGID = true;
+    RestrictRealtime = true;
+    LockPersonality = true;
+    RemoveIPC = true;
+    # An empty list would render no line at all and leave the default set.
+    CapabilityBoundingSet = "";
+    AmbientCapabilities = "";
+    SystemCallFilter = [ "@system-service" ];
+    SystemCallErrorNumber = "EPERM";
+    SystemCallArchitectures = "native";
+    UMask = "0077";
+    # No MemoryDenyWriteExecute: the JVM's JIT needs W+X pages.
+    # The module's createHome=true home is on tmpfs and stays empty in
+    # practice, but keep it writable so a stray JVM error dump behaves as
+    # it does today.
+    ReadWritePaths = [ "/var/docspell" ];
   };
 in
 {
@@ -73,11 +131,13 @@ in
     # applied the password, so both services find a usable role.
     docspell-restserver = {
       after = [ "postgresql.target" ];
-      serviceConfig = extraServiceConfig;
+      script = lib.mkForce "exec ${mkExec config.services.docspell-restserver "docspell-restserver"}";
+      serviceConfig = extraServiceConfig // hardening;
     };
     docspell-joex = {
       after = [ "postgresql.target" ];
-      serviceConfig = extraServiceConfig;
+      script = lib.mkForce "exec ${mkExec config.services.docspell-joex "docspell-joex"}";
+      serviceConfig = extraServiceConfig // hardening;
     };
 
     # A LibreOffice listener that only speeds up office-format conversion —

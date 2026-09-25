@@ -23,6 +23,7 @@
     ../services/immich.nix
     ../services/miniflux.nix
     ../services/mysql.nix
+    ../services/nix-serve.nix
     ../services/postgresql.nix
     ../services/silverbullet.nix
     ../services/tailscale.nix

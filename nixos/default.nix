@@ -18,9 +18,11 @@
     ../modules/proxy.nix
 
     ## Services
+    ../services/azerothcore.nix
     ../services/docspell.nix
     ../services/immich.nix
     ../services/miniflux.nix
+    ../services/mysql.nix
     ../services/postgresql.nix
     ../services/silverbullet.nix
     ../services/tailscale.nix

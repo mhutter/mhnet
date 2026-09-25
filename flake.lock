@@ -23,6 +23,45 @@
         "type": "github"
       }
     },
+    "azerothcore": {
+      "inputs": {
+        "azerothcore-src": "azerothcore-src",
+        "mod-playerbots-src": "mod-playerbots-src",
+        "nixpkgs": [
+          "nixpkgs"
+        ]
+      },
+      "locked": {
+        "lastModified": 1790340212,
+        "narHash": "sha256-OEWgoksaPQh69wuLp0w6QoruivdJbTCVelJsEyWPaGY=",
+        "owner": "mhutter",
+        "repo": "azerothcore-playerbots-nix",
+        "rev": "e992d771915ff360ad3c8e8b0b988097f4587d9d",
+        "type": "github"
+      },
+      "original": {
+        "owner": "mhutter",
+        "repo": "azerothcore-playerbots-nix",
+        "type": "github"
+      }
+    },
+    "azerothcore-src": {
+      "flake": false,
+      "locked": {
+        "lastModified": 1789917047,
+        "narHash": "sha256-qpR9rjeQUvGwZUXPeY+2xOTtp99vyydv8wpOWDIRVzg=",
+        "owner": "mod-playerbots",
+        "repo": "azerothcore-wotlk",
+        "rev": "7f12e89ee5f467a50e62eba1d525eac7dc953d03",
+        "type": "github"
+      },
+      "original": {
+        "owner": "mod-playerbots",
+        "ref": "Playerbot",
+        "repo": "azerothcore-wotlk",
+        "type": "github"
+      }
+    },
     "disko": {
       "inputs": {
         "nixpkgs": [
@@ -52,11 +91,11 @@
         ]
       },
       "locked": {
-        "lastModified": 1789778145,
-        "narHash": "sha256-YWL0p95e2axhMzKMu+jdclu892YwxLR3fA9KPIeE8ZE=",
+        "lastModified": 1790104872,
+        "narHash": "sha256-ia2oYO5FN7MVbrA6WRzuvdR5uw8/La6/07qdiKccoKA=",
         "owner": "eikek",
         "repo": "docspell",
-        "rev": "2e51898b87db95c96613ddb3e092053074160cd8",
+        "rev": "cf3174da06e889495f9392dd02e669f20bf21c50",
         "type": "github"
       },
       "original": {
@@ -104,13 +143,30 @@
         "type": "github"
       }
     },
+    "mod-playerbots-src": {
+      "flake": false,
+      "locked": {
+        "lastModified": 1789917066,
+        "narHash": "sha256-2x1e2nQvCxWplFnRNFHLSsQYxlbo9sZvfwE5yHykDzg=",
+        "owner": "mod-playerbots",
+        "repo": "mod-playerbots",
+        "rev": "7bae1b5c58c76a0aa20381155edc08096d1485b2",
+        "type": "github"
+      },
+      "original": {
+        "owner": "mod-playerbots",
+        "ref": "master",
+        "repo": "mod-playerbots",
+        "type": "github"
+      }
+    },
     "nixpkgs": {
       "locked": {
-        "lastModified": 1789998861,
-        "narHash": "sha256-62XMQD4WLdMAfdT0/8gJmPH2dKeTw908ryNloAplTr8=",
+        "lastModified": 1790218706,
+        "narHash": "sha256-6e4Na3z008XpdVyOXgfasXIn1aN+z8AXFG+jXdQSyuI=",
         "owner": "NixOS",
         "repo": "nixpkgs",
-        "rev": "1e8bc658fc985ef27ccd66d107d767b32bb7ef98",
+        "rev": "c508844df6c28fa6dabc1b6af70f3ccbd65c5201",
         "type": "github"
       },
       "original": {
@@ -122,11 +178,11 @@
     },
     "nixpkgs-unstable": {
       "locked": {
-        "lastModified": 1789785513,
-        "narHash": "sha256-B44WL6h0XoLjJ41bUPJk0X5SDinLCII//6EcBLXKiJ0=",
+        "lastModified": 1790185690,
+        "narHash": "sha256-xJ+X4hBtOcAFGBOe5nAMyMUeF9foJBmIOu3NjBqBycU=",
         "owner": "NixOS",
         "repo": "nixpkgs",
-        "rev": "20b1ddd1aa5ace70c9468305030aa4f9ef79671b",
+        "rev": "4975466d324710c576dc11ad614684e6bd8cad8e",
         "type": "github"
       },
       "original": {
@@ -139,6 +195,7 @@
     "root": {
       "inputs": {
         "agenix": "agenix",
+        "azerothcore": "azerothcore",
         "disko": "disko",
         "docspell": "docspell",
         "impermanence": "impermanence",

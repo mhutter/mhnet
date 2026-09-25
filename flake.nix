@@ -10,6 +10,11 @@
       inputs.darwin.follows = "";
     };
 
+    azerothcore = {
+      url = "github:mhutter/azerothcore-playerbots-nix";
+      inputs.nixpkgs.follows = "nixpkgs";
+    };
+
     disko = {
       url = "github:nix-community/disko";
       inputs.nixpkgs.follows = "nixpkgs";
@@ -34,6 +39,7 @@
       nixpkgs,
       nixpkgs-unstable,
       agenix,
+      azerothcore,
       disko,
       docspell,
       impermanence,
@@ -72,6 +78,7 @@
         modules = [
           ./nixos
           agenix.nixosModules.default
+          azerothcore.nixosModules.default
           disko.nixosModules.disko
           docspell.nixosModules.default
           impermanence.nixosModules.default

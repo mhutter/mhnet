@@ -14,6 +14,7 @@ let
   ];
 in
 {
+  "secrets/azerothcore-totp.age".publicKeys = hostRhea;
   "secrets/caddy-env.age".publicKeys = hostRhea;
   "secrets/docspell-env.age".publicKeys = hostRhea;
   "secrets/healthchecks-url.age".publicKeys = hostRhea;

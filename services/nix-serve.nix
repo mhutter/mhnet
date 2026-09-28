@@ -1,4 +1,4 @@
-{ config, ... }:
+{ config, pkgs, ... }:
 let
   cfg = config.services.nix-serve;
 in
@@ -10,5 +10,12 @@ in
     enable = true;
     bindAddress = "127.0.0.1";
     secretKeyFile = config.age.secrets.nixServeSecretKey.path;
+    # upstream hardcodes "Priority: 30" in nix-serve.psgi, no option to configure it
+    package = pkgs.nix-serve.overrideAttrs (old: {
+      postPatch = ''
+        ${old.postPatch or ""}
+        substituteInPlace nix-serve.psgi --replace-fail 'Priority: 30' 'Priority: 50'
+      '';
+    });
   };
 }

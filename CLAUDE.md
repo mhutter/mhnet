@@ -58,7 +58,7 @@ Secrets, inside direnv / `nix develop`: `agenix -e secrets/<name>.age`,
 - `services/` — one file per service.
 - `secrets/*.age`, `secrets.nix` — agenix; the age identity is the SSH host key.
 - `docs/` — `bootstrap.md` (install, verification, disk replacement),
-  `backup.md`, `postgresql.md`, `proxy.md`, `updates.md`.
+  `backup.md`, `monitoring.md`, `postgresql.md`, `proxy.md`, `updates.md`.
 - `.github/workflows/update-lock.yml` — the only thing that bumps `flake.lock`.
 
 ### Before editing

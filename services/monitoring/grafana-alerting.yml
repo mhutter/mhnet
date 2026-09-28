@@ -1,4 +1,4 @@
-# Managed by Ansible (roles/monitoring_hub).
+# Shared by services/monitoring.nix and ansible/roles/monitoring_hub.
 # Alert rules only; contact points and notification policies stay UI-managed,
 # these rules route through the default policy.
 apiVersion: 1

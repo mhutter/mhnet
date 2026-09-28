@@ -302,7 +302,7 @@
 
 - name: Install Grafana dashboards
   ansible.builtin.copy:
-    src: dashboards/
+    src: "{{ monitoring_hub_shared_files }}/dashboards/"
     dest: /var/lib/grafana/dashboards/
     owner: root
     group: grafana
@@ -319,7 +319,7 @@
 
 - name: Provision Grafana alert rules
   ansible.builtin.copy:
-    src: grafana-alerting.yml
+    src: "{{ monitoring_hub_shared_files }}/grafana-alerting.yml"
     dest: /etc/grafana/provisioning/alerting/mhnet.yml
     owner: root
     group: grafana
@@ -375,16 +375,7 @@
     group: root
     mode: "0644"
 
-# --- Cloudflare tunnel ---
-
-- name: Install the Cloudflare tunnel connector
-  ansible.builtin.include_role:
-    name: cloudflared
-
-- name: Expose Grafana through the Cloudflare tunnel
-  ansible.builtin.include_role:
-    name: cloudflared
-    tasks_from: expose
-  vars:
-    cloudflared_expose_hostname: "{{ monitoring_grafana_hostname }}"
-    cloudflared_expose_service: "http://localhost:3000"
+# --- Grafana UI ---
+# No longer exposed: monitoring_grafana_hostname is served by rhea
+# (services/monitoring.nix), and re-running the tunnel's expose task would
+# point its DNS record back at this host.

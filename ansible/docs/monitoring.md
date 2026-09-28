@@ -96,8 +96,9 @@ also come straight from the inventory via
 
 ## Moving to rhea
 
-`services/monitoring.nix` runs VictoriaMetrics and VictoriaLogs on rhea behind
-Caddy, one hostname each on 443, with the same basic-auth credential. To move
+`services/monitoring.nix` runs VictoriaMetrics, VictoriaLogs and Grafana on
+rhea behind Caddy, one hostname each on 443, with the same basic-auth
+credential; Grafana migration steps are in `docs/monitoring.md`. To move
 the fleet over, set at the `all` level of the vaulted inventory:
 
 ```yaml
@@ -105,7 +106,8 @@ monitoring_metrics_url: https://metrics.mhnet.app
 monitoring_logs_url: https://logs.mhnet.app
 ```
 
-and re-run `--tags monitoring_agent,monitoring_hub` (the hub's Grafana
-datasources use the same two URLs). History stays on the old hub: nothing is
+and re-run `--tags monitoring_agent`. Do not re-run `monitoring_hub` after
+Grafana moved: it would start the old hub's Grafana again, and with it a second
+set of alert notifications. History stays on the old hub: nothing is
 migrated. journal-upload resumes from its cursor, so no logs are lost; vmagent
 keeps its buffer per URL, so samples still queued for the old hub stay there.

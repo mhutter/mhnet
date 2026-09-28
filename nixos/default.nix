@@ -22,6 +22,7 @@
     ../services/docspell.nix
     ../services/immich.nix
     ../services/miniflux.nix
+    ../services/monitoring.nix
     ../services/mysql.nix
     ../services/nix-cache-warm.nix
     ../services/nix-serve.nix

@@ -11,6 +11,12 @@
 monitoring_remote_write_user: monitoring
 monitoring_metrics_port: 8428
 monitoring_logs_port: 9428
+
+# Base URLs (no path) of the metrics and logs APIs. The defaults are the
+# Ansible hub's ports; override both in the inventory to push to hosts that
+# serve them behind a reverse proxy on 443 instead, e.g. rhea.
+monitoring_metrics_url: "https://{{ monitoring_ingest_hostname }}:{{ monitoring_metrics_port }}"
+monitoring_logs_url: "https://{{ monitoring_ingest_hostname }}:{{ monitoring_logs_port }}"
 monitoring_scrape_interval: 30s
 
 # VictoriaMetrics interprets a bare number as months.

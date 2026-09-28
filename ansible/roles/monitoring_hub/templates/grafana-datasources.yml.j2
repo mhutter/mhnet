@@ -1,7 +1,7 @@
 # {{ ansible_managed }}
 # Both datasources go through the public ingest endpoints so the same TLS
-# certificate and auth apply; from the hub itself that traffic stays on
-# loopback.
+# certificate and auth apply -- the same URLs the agents push to, so once
+# those point at rhea, Grafana follows.
 apiVersion: 1
 
 datasources:
@@ -9,7 +9,7 @@ datasources:
     uid: victoriametrics
     type: prometheus
     access: proxy
-    url: "https://{{ monitoring_ingest_hostname }}:{{ monitoring_metrics_port }}"
+    url: "{{ monitoring_metrics_url }}"
     isDefault: true
     basicAuth: true
     basicAuthUser: "{{ monitoring_remote_write_user }}"
@@ -22,7 +22,7 @@ datasources:
     uid: victorialogs
     type: victoriametrics-logs-datasource
     access: proxy
-    url: "https://{{ monitoring_ingest_hostname }}:{{ monitoring_logs_port }}"
+    url: "{{ monitoring_logs_url }}"
     basicAuth: true
     basicAuthUser: "{{ monitoring_remote_write_user }}"
     secureJsonData:

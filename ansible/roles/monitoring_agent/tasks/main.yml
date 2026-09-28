@@ -8,11 +8,15 @@
 - name: Ensure monitoring agent variables are configured
   ansible.builtin.assert:
     that:
-      - monitoring_ingest_hostname is defined
+      # False while the defaults reference an undefined
+      # monitoring_ingest_hostname.
+      - monitoring_metrics_url is defined
+      - monitoring_logs_url is defined
       - monitoring_remote_write_password is defined
     fail_msg: >-
       Missing monitoring variables for {{ inventory_hostname }}. Add
-      monitoring_ingest_hostname and monitoring_remote_write_password at the
+      monitoring_ingest_hostname (or monitoring_metrics_url and
+      monitoring_logs_url) and monitoring_remote_write_password at the
       `all` level of the vaulted inventory (see README).
 
 # victoria-metrics is installed only for its vmagent binary, and the package
@@ -275,7 +279,7 @@
     content: |
       # Managed by Ansible (roles/monitoring_agent).
       [Upload]
-      URL=https://{{ monitoring_ingest_hostname }}:{{ monitoring_logs_port }}/insert/journald
+      URL={{ monitoring_logs_url }}/insert/journald
       ServerKeyFile=-
       ServerCertificateFile=-
       TrustedCertificateFile=/etc/ssl/certs/ca-certificates.crt

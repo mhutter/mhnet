@@ -37,6 +37,10 @@ all:
 
     # Monitoring: every host pushes metrics and logs here.
     monitoring_ingest_hostname: mon.example.com
+    # Optional: push to the hub on rhea (Caddy on 443) instead of the
+    # Ansible hub's :8428/:9428. Grafana's datasources follow.
+    # monitoring_metrics_url: https://metrics.example.com
+    # monitoring_logs_url: https://logs.example.com
     monitoring_remote_write_password: "<secret>"
 
   children:

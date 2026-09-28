@@ -33,6 +33,9 @@ journal-upload sends the credential through its `Header=` option.
 2. Vars at the `all` level: `monitoring_ingest_hostname` (e.g.
    `mon.example.com`) and `monitoring_remote_write_password`
    (`openssl rand -base64 32`).
+   `monitoring_metrics_url` / `monitoring_logs_url` default to
+   `https://<ingest hostname>:8428` / `:9428`; see
+   [Moving to rhea](#moving-to-rhea) for overriding them.
 3. Vars on the hub: `monitoring_grafana_hostname`, `grafana_admin_password`,
    and the ingest firewall openings — sources must be literal IPv6 addresses
    (use an explicit list if `ansible_host` values are DNS names):
@@ -90,3 +93,19 @@ also come straight from the inventory via
 - Textfile metrics go stale silently if their timer breaks; the provisioned
   `StaleTextfileMetrics` alert fires when any textfile is older than 25h,
   covering both of the above (the dpkg timer is the slowest at daily).
+
+## Moving to rhea
+
+`services/monitoring.nix` runs VictoriaMetrics and VictoriaLogs on rhea behind
+Caddy, one hostname each on 443, with the same basic-auth credential. To move
+the fleet over, set at the `all` level of the vaulted inventory:
+
+```yaml
+monitoring_metrics_url: https://metrics.mhnet.app
+monitoring_logs_url: https://logs.mhnet.app
+```
+
+and re-run `--tags monitoring_agent,monitoring_hub` (the hub's Grafana
+datasources use the same two URLs). History stays on the old hub: nothing is
+migrated. journal-upload resumes from its cursor, so no logs are lost; vmagent
+keeps its buffer per URL, so samples still queued for the old hub stay there.

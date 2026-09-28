@@ -21,6 +21,7 @@
     ../services/azerothcore.nix
     ../services/docspell.nix
     ../services/immich.nix
+    ../services/languagetool.nix
     ../services/miniflux.nix
     ../services/monitoring.nix
     ../services/mysql.nix

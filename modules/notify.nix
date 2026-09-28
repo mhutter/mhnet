@@ -31,7 +31,7 @@ in
 
     interval = lib.mkOption {
       type = lib.types.str;
-      default = "hourly";
+      default = "*:3/5"; # every 5 minutes, offset by 3 minutes.
       description = ''
         How often the heartbeat pings Healthchecks. The check's period and grace
         live in the Healthchecks UI, not here — this only has to ping more often
@@ -126,6 +126,6 @@ in
     );
 
     # Spread the pings off the top of the hour; Healthchecks' grace absorbs it.
-    systemd.timers.healthchecks-ping.timerConfig.RandomizedDelaySec = "5min";
+    systemd.timers.healthchecks-ping.timerConfig.RandomizedDelaySec = "25";
   };
 }

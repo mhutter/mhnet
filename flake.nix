@@ -92,5 +92,7 @@
           persist = "/nix/persist";
         };
       };
+
+      formatter.${system} = pkgs.nixfmt;
     };
 }

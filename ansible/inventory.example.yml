@@ -47,22 +47,6 @@ all:
     # backup_restic_password outside this repo -- losing it means losing
     # the backups).
 
-    miniflux:
-      hosts:
-        scw-miniflux:
-          ansible_host: 2001:db8:1::1
-          cloudflared_tunnel_id: "<tunnel id>"
-          cloudflared_tunnel_token: "<secret: tunnel token>"
-          backup_b2_account_id: "<B2 key id>"
-          backup_b2_account_key: "<secret: B2 key>"
-          backup_restic_password: "<secret -- keep an offsite copy>"
-
-          miniflux_app_hostname: miniflux.example.com
-          # OIDC client created in the pocket-id admin UI.
-          miniflux_oauth2_client_id: "<client id>"
-          miniflux_oauth2_client_secret: "<secret: from pocket-id>"
-          miniflux_oauth2_discovery_endpoint: https://id.example.com
-
     pocket_id:
       hosts:
         ncp-pocketid:

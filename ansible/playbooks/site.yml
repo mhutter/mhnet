@@ -29,14 +29,6 @@
     - role: pocket_id
       tags: pocket_id
 
-- hosts: miniflux
-  become: true
-  roles:
-    - role: dns64
-      tags: dns64
-    - role: miniflux
-      tags: miniflux
-
 - hosts: firefly
   become: true
   roles:

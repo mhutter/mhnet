@@ -29,11 +29,11 @@
         ]
       },
       "locked": {
-        "lastModified": 1790690848,
-        "narHash": "sha256-8kMTIEQJnE6kyU2t3umwHbLK0pzQqnlz7fRW1u1JO5E=",
+        "lastModified": 1790712693,
+        "narHash": "sha256-os+R8whbAfrNgM+Sp0nSaUA9lC0wiRU3bg5cYl32hwA=",
         "owner": "mhutter",
         "repo": "azerothcore-playerbots-nix",
-        "rev": "b679b5bec49d2ce12627dec2e924954b67d53833",
+        "rev": "b960962c2f8d118101ff968f8498b751424e8a13",
         "type": "github"
       },
       "original": {
@@ -140,6 +140,22 @@
         "type": "github"
       }
     },
+    "mod-ah-bot-plus": {
+      "flake": false,
+      "locked": {
+        "lastModified": 1783041686,
+        "narHash": "sha256-0txdPNqqBZIZRbFCkYS1Ls3ggd2aJ5zSRAOKea3u7VA=",
+        "owner": "NathanHandley",
+        "repo": "mod-ah-bot-plus",
+        "rev": "f685832994c825f90aa5a3dc0e1620aa568e875b",
+        "type": "github"
+      },
+      "original": {
+        "owner": "NathanHandley",
+        "repo": "mod-ah-bot-plus",
+        "type": "github"
+      }
+    },
     "mod-individual-progression": {
       "flake": false,
       "locked": {
@@ -212,6 +228,7 @@
         "disko": "disko",
         "docspell": "docspell",
         "impermanence": "impermanence",
+        "mod-ah-bot-plus": "mod-ah-bot-plus",
         "mod-individual-progression": "mod-individual-progression",
         "nixpkgs": "nixpkgs",
         "nixpkgs-unstable": "nixpkgs-unstable"

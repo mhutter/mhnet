@@ -30,6 +30,11 @@
       inputs.nixpkgs.follows = "nixpkgs";
     };
 
+    ### Azerothcore Mods
+    mod-ah-bot-plus = {
+      url = "github:NathanHandley/mod-ah-bot-plus";
+      flake = false;
+    };
     mod-individual-progression = {
       url = "github:ZhengPeiRu21/mod-individual-progression";
       flake = false;
@@ -46,6 +51,7 @@
       disko,
       docspell,
       impermanence,
+      mod-ah-bot-plus,
       mod-individual-progression,
     }:
     let
@@ -95,7 +101,7 @@
           ];
           persist = "/nix/persist";
           # Sources compiled into the worldserver: services.azerothcore.extraModules
-          azerothcoreModules = { inherit mod-individual-progression; };
+          azerothcoreModules = { inherit mod-ah-bot-plus mod-individual-progression; };
         };
       };
 

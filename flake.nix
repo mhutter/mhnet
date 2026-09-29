@@ -29,6 +29,11 @@
       inputs.home-manager.follows = "";
       inputs.nixpkgs.follows = "nixpkgs";
     };
+
+    mod-individual-progression = {
+      url = "github:ZhengPeiRu21/mod-individual-progression";
+      flake = false;
+    };
   };
 
   outputs =
@@ -41,6 +46,7 @@
       disko,
       docspell,
       impermanence,
+      mod-individual-progression,
     }:
     let
       system = "x86_64-linux";
@@ -88,6 +94,8 @@
             "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIENf5523OeX3ZEOJuAF9P5OLy+/S78UX7+xNC+O6AoD9" # mh@rotz2026
           ];
           persist = "/nix/persist";
+          # Sources compiled into the worldserver: services.azerothcore.extraModules
+          azerothcoreModules = { inherit mod-individual-progression; };
         };
       };
 

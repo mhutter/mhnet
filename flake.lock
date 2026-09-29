@@ -29,11 +29,11 @@
         ]
       },
       "locked": {
-        "lastModified": 1790340394,
-        "narHash": "sha256-NrV5GeZA/8fMJ2mUkWAKDkOhBPNOE+qfaboayP4kS4E=",
+        "lastModified": 1790690848,
+        "narHash": "sha256-8kMTIEQJnE6kyU2t3umwHbLK0pzQqnlz7fRW1u1JO5E=",
         "owner": "mhutter",
         "repo": "azerothcore-playerbots-nix",
-        "rev": "1669beb7ea505cb00ad0f9404cec5bfb50a2d7e1",
+        "rev": "b679b5bec49d2ce12627dec2e924954b67d53833",
         "type": "github"
       },
       "original": {
@@ -140,6 +140,22 @@
         "type": "github"
       }
     },
+    "mod-individual-progression": {
+      "flake": false,
+      "locked": {
+        "lastModified": 1790234398,
+        "narHash": "sha256-yR+qL5E4Q75VaJ3P1XQdYesEwY7PA3t4bi14B7rZPSg=",
+        "owner": "ZhengPeiRu21",
+        "repo": "mod-individual-progression",
+        "rev": "0180b9172d0d29bbce53dd84af133b3d998b0622",
+        "type": "github"
+      },
+      "original": {
+        "owner": "ZhengPeiRu21",
+        "repo": "mod-individual-progression",
+        "type": "github"
+      }
+    },
     "mod-playerbots-src": {
       "flake": false,
       "locked": {
@@ -196,6 +212,7 @@
         "disko": "disko",
         "docspell": "docspell",
         "impermanence": "impermanence",
+        "mod-individual-progression": "mod-individual-progression",
         "nixpkgs": "nixpkgs",
         "nixpkgs-unstable": "nixpkgs-unstable"
       }

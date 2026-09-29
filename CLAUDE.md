@@ -50,8 +50,9 @@ Secrets, inside direnv / `nix develop`: `agenix -e secrets/<name>.age`,
 
 ### Layout
 
-- `flake.nix` — passes `specialArgs` (`username`, `sshPublicKeys`, `persist`);
-  modules take these as plain function args, not via `config`.
+- `flake.nix` — passes `specialArgs` (`username`, `sshPublicKeys`, `persist`,
+  `azerothcoreModules`); modules take these as plain function args, not via
+  `config`.
 - `nixos/` — host base. `nixos/default.nix` is the single import list for
   everything, including `modules/` and `services/`.
 - `modules/` — cross-cutting `mhnet.*` options.

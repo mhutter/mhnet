@@ -70,11 +70,11 @@ in
       exclude = [ config.services.mysql.dataDir ];
       prepare = ''
         rm -f ${dumpDir}/*.sql
-        ${runuser} -u mysql -- ${mysql}/bin/mysql --batch --skip-column-names \
+        ${runuser} -u mysql -- ${mysql}/bin/mysql --user=mysql --batch --skip-column-names \
           --execute 'SHOW DATABASES' \
           | { ${pkgs.gnugrep}/bin/grep -vxE 'mysql|sys|information_schema|performance_schema' || true; } \
           | while read -r db; do
-              ${runuser} -u mysql -- ${mysql}/bin/mysqldump \
+              ${runuser} -u mysql -- ${mysql}/bin/mysqldump --user=mysql \
                 --single-transaction --routines --events --triggers \
                 --databases "$db" \
                 > "${dumpDir}/$db.sql"

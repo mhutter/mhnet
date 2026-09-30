@@ -8,9 +8,24 @@
       inputs.nixpkgs.follows = "nixpkgs";
     };
 
+    # The game sources are pinned here rather than in the module's own lock, so
+    # updating them is a lock bump in this repo. Like everything AzerothCore,
+    # they are left out of the weekly bump (update-lock.yml): new commits
+    # bring schema changes the worldserver applies to the databases on start.
     azerothcore = {
       url = "github:mhutter/azerothcore-playerbots-nix";
       inputs.nixpkgs.follows = "nixpkgs";
+      inputs.azerothcore-src.follows = "azerothcore-src";
+      inputs.mod-playerbots-src.follows = "mod-playerbots-src";
+    };
+    # The two move in lockstep, as the mod-playerbots wiki demands.
+    azerothcore-src = {
+      url = "github:mod-playerbots/azerothcore-wotlk/Playerbot";
+      flake = false;
+    };
+    mod-playerbots-src = {
+      url = "github:mod-playerbots/mod-playerbots/master";
+      flake = false;
     };
 
     disko = {
@@ -48,6 +63,8 @@
       nixpkgs-unstable,
       agenix,
       azerothcore,
+      azerothcore-src,
+      mod-playerbots-src,
       disko,
       docspell,
       impermanence,

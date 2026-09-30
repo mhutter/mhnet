@@ -3,11 +3,11 @@
 Unattended, scheduled so the risky moment happens when someone is awake
 (`nixos/auto-upgrade.nix`).
 
-| When                      | What                                                                                                              |
-| ------------------------- | ----------------------------------------------------------------------------------------------------------------- |
-| Tue 04:00 UTC             | GitHub Actions `update-lock`: `nix flake update`, build, push `flake: bump inputs` to `main`                      |
-| Wed 06:00 UTC (+0–10 min) | `nixos-upgrade`: `nixos-rebuild boot` from `github:mhutter/mhnet`, then `switch`, or reboot if the kernel changed |
-| Thu 02:00 UTC (+0–30 min) | `nix-gc --delete-older-than 90d`                                                                                  |
+| When                      | What                                                                                                                           |
+| ------------------------- | ------------------------------------------------------------------------------------------------------------------------------ |
+| Tue 04:00 UTC             | GitHub Actions `update-lock`: `nix flake update` of all but the AzerothCore inputs, build, push `flake: bump inputs` to `main` |
+| Wed 06:00 UTC (+0–10 min) | `nixos-upgrade`: `nixos-rebuild boot` from `github:mhutter/mhnet`, then `switch`, or reboot if the kernel changed              |
+| Thu 02:00 UTC (+0–30 min) | `nix-gc --delete-older-than 90d`                                                                                               |
 
 `nixpkgs` follows a release branch, so updates are backports and security
 fixes. The day between bump and deploy leaves time to revert a bad bump.
@@ -15,6 +15,22 @@ fixes. The day between bump and deploy leaves time to revert a bad bump.
 **`main` is the source of truth.** `just` deploys the working tree;
 `nixos-upgrade` deploys `main`. Anything not committed **and pushed** is
 reverted at the next upgrade.
+
+**AzerothCore is updated by hand.** Its inputs (`azerothcore`,
+`azerothcore-src`, `mod-playerbots-src`, `mod-*`) are left out of the weekly
+bump: new commits bring schema changes the worldserver applies to its databases
+on start, which a rollback does not undo. Take a snapshot first, then bump and
+deploy while watching:
+
+```sh
+ssh -p 50642 rhea sudo snapshot-acore-dbs
+nix flake update azerothcore azerothcore-src mod-playerbots-src \
+  mod-ah-bot-plus mod-individual-progression
+just switch
+```
+
+A new flake input is bumped only once it is added to the list in
+`update-lock.yml`.
 
 ## Alerting
 

@@ -61,7 +61,9 @@ Secrets, inside direnv / `nix develop`: `agenix -e secrets/<name>.age`,
 - `docs/` — shared by both halves: `bootstrap.md` (install, verification, disk
   replacement), `backup.md`, `monitoring.md`, `postgresql.md`, `proxy.md`,
   `updates.md`, `cloudflared.md`, `firefly.md`.
-- `.github/workflows/update-lock.yml` — the only thing that bumps `flake.lock`.
+- `.github/workflows/update-lock.yml` — the weekly `flake.lock` bump, an
+  allowlist of inputs; the AzerothCore ones are bumped by hand
+  (`docs/updates.md`).
 
 ### Before editing
 

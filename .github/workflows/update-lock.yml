@@ -24,7 +24,11 @@ jobs:
           extra_nix_config: |
             experimental-features = nix-command flakes
 
-      - run: nix flake update
+      # An allowlist: the AzerothCore inputs (azerothcore, azerothcore-src,
+      # mod-playerbots-src, mod-*) move only by hand, because new commits bring
+      # schema changes the worldserver applies to its databases. A new input
+      # is not bumped until it is added here.
+      - run: nix flake update nixpkgs nixpkgs-unstable agenix disko docspell impermanence
 
       # The host refuses to activate a config that does not build, so this is
       # not what keeps rhea alive — it keeps main green and leaves a readable

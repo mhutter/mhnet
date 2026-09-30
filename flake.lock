@@ -22,8 +22,12 @@
     },
     "azerothcore": {
       "inputs": {
-        "azerothcore-src": "azerothcore-src",
-        "mod-playerbots-src": "mod-playerbots-src",
+        "azerothcore-src": [
+          "azerothcore-src"
+        ],
+        "mod-playerbots-src": [
+          "mod-playerbots-src"
+        ],
         "nixpkgs": [
           "nixpkgs"
         ]
@@ -225,11 +229,13 @@
       "inputs": {
         "agenix": "agenix",
         "azerothcore": "azerothcore",
+        "azerothcore-src": "azerothcore-src",
         "disko": "disko",
         "docspell": "docspell",
         "impermanence": "impermanence",
         "mod-ah-bot-plus": "mod-ah-bot-plus",
         "mod-individual-progression": "mod-individual-progression",
+        "mod-playerbots-src": "mod-playerbots-src",
         "nixpkgs": "nixpkgs",
         "nixpkgs-unstable": "nixpkgs-unstable"
       }

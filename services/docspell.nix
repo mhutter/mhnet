@@ -119,6 +119,9 @@ in
 
     inherit full-text-search;
     backend.jdbc = jdbc;
+
+    # At Info, http4s logs every request and response; Caddy has those already.
+    logging.levels."org.http4s" = "Warn";
   };
 
   services.docspell-joex = {

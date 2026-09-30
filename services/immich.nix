@@ -29,6 +29,9 @@ in
   systemd.services.immich-machine-learning.unitConfig.RequiresMountsFor = cacheDir;
   systemd.services.immich-machine-learning.serviceConfig.CacheDirectory = lib.mkForce "";
 
+  # "notice" logs five lines per background save.
+  services.redis.servers.immich.logLevel = "warning";
+
   services.immich = {
     enable = true;
     package = pkgs.unstable.immich;
@@ -49,7 +52,12 @@ in
 
     mediaLocation = dataDir;
 
+    # Nest colours its output, which the journal then stores as byte arrays:
+    # larger, and unsearchable once shipped.
+    environment.NO_COLOR = "1";
+
     machine-learning.environment = {
+      NO_COLOR = "1";
       MACHINE_LEARNING_CACHE_FOLDER = lib.mkForce cacheDir;
       XDG_CACHE_HOME = lib.mkForce cacheDir;
     };

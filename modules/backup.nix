@@ -145,5 +145,9 @@ in
         }
       ) jobs
     );
+
+    # restic creates the missing parents of its cache 0700 as well, which locked
+    # every other service out of its own cache under there (Immich's ML models).
+    systemd.tmpfiles.rules = [ "d ${persist}/var/cache 0755 root root -" ];
   };
 }

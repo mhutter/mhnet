@@ -53,7 +53,10 @@ in
       # One broken host must not keep the others cold; fail at the end instead.
       failed=""
       for host in $hosts; do
-        nix build --print-build-logs \
+        # No --print-build-logs: tens of thousands of lines per run in the
+        # journal; a failed build still prints its last lines, the rest is in
+        # `nix log`.
+        nix build \
           --out-link "${rootsDir}/$host" \
           "$src#nixosConfigurations.$host.config.system.build.toplevel" \
           || failed="$failed $host"

@@ -54,7 +54,17 @@ in
 
     # Nest colours its output, which the journal then stores as byte arrays:
     # larger, and unsearchable once shipped.
-    environment.NO_COLOR = "1";
+    environment = {
+      NO_COLOR = "1";
+      # Job queues and durations only (a failing ML job type shows up there);
+      # Caddy already has the per-host request metrics. The defaults would be
+      # 8081/8082, and 8081 is LanguageTool's. The exporter binds all
+      # interfaces; the firewall keeps the ports local. Scraped by
+      # services/monitoring-agent.nix.
+      IMMICH_TELEMETRY_INCLUDE = "job";
+      IMMICH_API_METRICS_PORT = "8091";
+      IMMICH_MICROSERVICES_METRICS_PORT = "8092";
+    };
 
     machine-learning.environment = {
       NO_COLOR = "1";

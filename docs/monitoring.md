@@ -77,6 +77,12 @@ writing to the hub on loopback.
   metric is ported; the dpkg conffile one has no NixOS equivalent, so its
   dashboard panel stays empty for rhea. Bind mounts, `/run` and ramfs are left
   out of the filesystem metrics.
+- **Service metrics**, one `job` each: `caddy` (per-host HTTP metrics),
+  `victoriametrics`, `victorialogs`, `immich-api` and `immich-microservices`
+  (only the `job` telemetry group: queues and job durations), `grafana` (only
+  `grafana_alerting_*`), and `vector` itself (counters and gauges only, no
+  histograms). PostgreSQL, MySQL and Redis have no native endpoint and would
+  need an exporter each.
 - **Journal**: shaped like the fleet's journal-upload entries — journald field
   names, `level`, streams by `_HOSTNAME`, `_MACHINE_ID`, `_SYSTEMD_UNIT` — but
   only a subset of the fields. Locally the journal keeps 14 days (1 GB at

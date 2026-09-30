@@ -1,5 +1,5 @@
-## Monitoring agent: node_exporter, the journal and Caddy's access logs, shipped
-## by Vector to VictoriaMetrics and VictoriaLogs
+## Monitoring agent: host and service metrics, the journal and Caddy's access
+## logs, shipped by Vector to VictoriaMetrics and VictoriaLogs
 #
 # The NixOS counterpart of ansible/roles/monitoring_agent. The hub runs on this
 # host (services/monitoring.nix), so Vector writes to it on loopback: no TLS,
@@ -17,6 +17,21 @@ let
   vm = config.services.victoriametrics;
   textfileDir = "/var/lib/prometheus-node-exporter";
   vl = config.services.victorialogs;
+
+  # Scrape targets by job name; see the Metrics section of Vector below.
+  scrapeTargets = {
+    node = "http://127.0.0.1:${toString nodePort}/metrics";
+    # Admin endpoint; `metrics` in modules/proxy.nix adds per-host HTTP metrics.
+    caddy = "http://127.0.0.1:2019/metrics";
+    grafana = "http://${grafana.http_addr}:${toString grafana.http_port}/metrics";
+    immich-api = "http://127.0.0.1:${config.services.immich.environment.IMMICH_API_METRICS_PORT}/metrics";
+    immich-microservices = "http://127.0.0.1:${config.services.immich.environment.IMMICH_MICROSERVICES_METRICS_PORT}/metrics";
+  };
+  hubTargets = {
+    victoriametrics = "http://${vm.listenAddress}/metrics";
+    victorialogs = "http://${vl.listenAddress}/metrics";
+  };
+  grafana = config.services.grafana.settings.server;
   vectorDataDir = "${persist}/var/lib/vector";
 
   # Both hub daemons check the same credential.
@@ -212,27 +227,76 @@ in
       };
 
       ## Metrics
-      sources.node = {
+      # monitoring_scrape_interval of the Ansible agents.
+      sources.scrape = {
         type = "prometheus_scrape";
-        endpoints = [ "http://127.0.0.1:${toString nodePort}/metrics" ];
-        # monitoring_scrape_interval of the Ansible agents.
+        endpoints = lib.attrValues scrapeTargets;
+        endpoint_tag = "endpoint";
         scrape_interval_secs = 30;
+      };
+
+      # The hub daemons guard /metrics with the ingest credential.
+      sources.scrape_hub = {
+        type = "prometheus_scrape";
+        endpoints = lib.attrValues hubTargets;
+        endpoint_tag = "endpoint";
+        scrape_interval_secs = 30;
+        auth = hubAuth vm;
+      };
+
+      # Errors, dropped events and throughput of Vector itself.
+      sources.vector = {
+        type = "internal_metrics";
+        scrape_interval_secs = 30;
+      };
+
+      # Counters and gauges answer "is shipping healthy" (errors, discarded and
+      # sent events); the latency and buffer histograms are ~90% of the series.
+      # Labelled here rather than below: their `endpoint` tags are sink and
+      # scrape URLs, which the job lookup would misread.
+      transforms.vector_metrics = {
+        type = "remap";
+        inputs = [ "vector" ];
+        source = ''
+          if .type != "counter" && .type != "gauge" { abort }
+          .tags.job = "vector"
+          .tags.instance = "${host}"
+        '';
+      };
+
+      # Of Grafana's ~6000 series only alerting matters here: failed rule
+      # evaluations and notifications. The rest are its internals.
+      transforms.grafana = {
+        type = "filter";
+        inputs = [ "scrape" ];
+        condition = ''
+          .tags.endpoint != "${scrapeTargets.grafana}" ||
+            starts_with(string!(.name), "grafana_alerting_") || .name == "grafana_build_info"
+        '';
       };
 
       # vmagent adds job and instance itself; the dashboard and alert rules
       # select by instance.
       transforms.labels = {
         type = "remap";
-        inputs = [ "node" ];
+        inputs = [
+          "grafana"
+          "scrape_hub"
+        ];
         source = ''
-          .tags.job = "node"
+          jobs = ${builtins.toJSON (lib.mapAttrs' (job: url: lib.nameValuePair url job) (scrapeTargets // hubTargets))}
+          .tags.job = get!(jobs, [.tags.endpoint])
+          del(.tags.endpoint)
           .tags.instance = "${host}"
         '';
       };
 
       sinks.victoriametrics = {
         type = "prometheus_remote_write";
-        inputs = [ "labels" ];
+        inputs = [
+          "labels"
+          "vector_metrics"
+        ];
         endpoint = "http://${vm.listenAddress}/api/v1/write";
         # Expects a 200; VictoriaMetrics answers 204 and every start would log
         # a failed healthcheck.

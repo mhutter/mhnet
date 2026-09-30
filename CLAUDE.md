@@ -95,8 +95,8 @@ Secrets, inside direnv / `nix develop`: `agenix -e secrets/<name>.age`,
   `units` to get an `OnFailure=` ntfy push. The hourly Healthchecks heartbeat is
   the dead-man switch and must stay out of `units`: its failure is already
   reported by the silence it causes.
-- **`system.autoUpgrade`** (`nixos/auto-upgrade.nix`) — deploys `main` from the
-  forge on a timer, **not** the working tree `just` rsyncs over. Uncommitted
+- **`system.autoUpgrade`** (`nixos/auto-upgrade.nix`) — deploys `main` from
+  GitHub on a timer, **not** the working tree `just` rsyncs over. Uncommitted
   state on the host is reverted at the next run. `docs/updates.md`.
 - **Deliberate, not gaps:** no swap or zram, and unallocated VG space left as
   growth headroom for both mounts.

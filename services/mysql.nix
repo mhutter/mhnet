@@ -47,6 +47,8 @@ in
       };
     };
 
+    mhnet.notify.units = [ "mysql.service" ];
+
     # --initialize-insecure leaves root@localhost without a password, and
     # upstream only fixes that from stateVersion 26.11 on. Idempotent; runs as
     # the mysql user, which upstream creates with auth_socket and ALL WITH

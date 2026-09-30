@@ -54,6 +54,11 @@ in
 {
   age.secrets.azerothcoreTotp.file = ../secrets/azerothcore-totp.age;
 
+  mhnet.notify.units = [
+    "ac-authserver.service"
+    "ac-worldserver.service"
+  ];
+
   environment.systemPackages = [ snapshot-acore-dbs ];
 
   systemd.tmpfiles.settings."10-mysql-snapshots".${snapshotDir}.d = {

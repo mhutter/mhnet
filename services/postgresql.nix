@@ -158,6 +158,14 @@ in
         };
       };
 
+    # postgresql-setup runs ensureDatabases/ensureUsers; a failed password unit
+    # locks its app out while the server itself looks healthy.
+    mhnet.notify.units = [
+      "postgresql.service"
+      "postgresql-setup.service"
+    ]
+    ++ map (name: "postgresql-password-${name}.service") (lib.attrNames passwordApps);
+
     # Dumps every database plus the globals (roles, tablespaces), so app
     # modules need no hooks of their own. The dumps are under ${persist} and
     # thus already covered by mhnet.backup.paths.

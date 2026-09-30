@@ -1,31 +1,78 @@
 # Provisioned by services/monitoring.nix.
-# Alert rules only; contact points and notification policies stay UI-managed,
-# these rules route through the default policy.
+# Alert rules and notification templates only; contact points and
+# notification policies stay UI-managed, these rules route through the
+# default policy.
 apiVersion: 1
 
-# Compact Telegram-friendly notification rendering; the default template
-# dumps values, every label, and bare URLs. To use it, point the Telegram
-# contact point (UI-managed) at it: Message = {{ template "telegram.message" . }}
-# and Parse mode = HTML. Label/annotation values must not contain raw
-# HTML metacharacters (&, <, >) -- ours are hostnames, unit names, paths.
 templates:
   - orgId: 1
-    name: telegram
+    name: mhnet
     template: |
       {{/* Grafana Explore link to the unit's journal in VictoriaLogs (the
            instance label matches journald's _HOSTNAME). Per-alert data has
            no ExternalURL, so the base URL is recovered from SilenceURL. */}}
-      {{ define "telegram.unitLogsURL" -}}
+      {{ define "mhnet.unitLogsURL" -}}
       {{ reReplaceAll "/alerting/silence/new.*" "" .SilenceURL }}/explore?left={{ urlquery `{"datasource":"victorialogs","queries":[{"refId":"A","expr":"_HOSTNAME:\"` .Labels.instance `\" AND _SYSTEMD_UNIT:\"` .Labels.unit `\""}],"range":{"from":"now-24h","to":"now"}}` }}
       {{- end }}
 
+  # ntfy's JSON publish format, for a Webhook contact point (UI-managed):
+  # URL = https://ntfy.sh (the root: JSON publishing names the topic in the
+  # body), Custom Payload = {{ template "ntfy.payload" . }}, and a payload
+  # variable `topic` holding the topic from secrets/ntfy-url.age, which
+  # thereby stays out of the repo. A single alert gets its links as action
+  # buttons (ntfy allows three); a group links to the alert list instead.
+  - orgId: 1
+    name: ntfy
+    template: |
+      {{ define "ntfy.title" -}}
+      {{ with .CommonLabels.alertname }}{{ . }}: {{ end -}}
+      {{ with .Alerts.Firing }}{{ len . }} firing{{ end -}}
+      {{ if and .Alerts.Firing .Alerts.Resolved }}, {{ end -}}
+      {{ with .Alerts.Resolved }}{{ len . }} resolved{{ end -}}
+      {{ end }}
+
+      {{ define "ntfy.message" -}}
+      {{ range $i, $a := .Alerts -}}
+      {{ if $i }}{{ "\n\n" }}{{ end -}}
+      {{ if eq $a.Status "firing" }}🔴{{ else }}✅{{ end }} {{ $a.Labels.alertname }}{{ with $a.Labels.instance }} · {{ . }}{{ end }}
+      {{- with $a.Annotations.summary }}{{ "\n" }}{{ . }}{{ end }}
+      {{- end }}
+      {{- end }}
+
+      {{ define "ntfy.payload" -}}
+      {{- $firing := gt (len .Alerts.Firing) 0 -}}
+      {{- $priority := 2 -}}
+      {{- if $firing }}{{ $priority = 4 }}{{ end -}}
+      {{- $click := printf "%s/alerting/list" (reReplaceAll "/+$" "" .ExternalURL) -}}
+      {{- $actions := coll.Slice -}}
+      {{- if eq (len .Alerts) 1 -}}
+        {{- $a := index .Alerts 0 -}}
+        {{- $click = $a.GeneratorURL -}}
+        {{- if eq $a.Status "firing" -}}
+          {{- $actions = coll.Append (coll.Dict "action" "view" "label" "Silence" "url" $a.SilenceURL) $actions -}}
+        {{- end -}}
+        {{- if $a.Labels.unit -}}
+          {{- $actions = coll.Append (coll.Dict "action" "view" "label" "Logs" "url" (tmpl.Exec "mhnet.unitLogsURL" $a)) $actions -}}
+        {{- end -}}
+      {{- end -}}
+      {{ coll.Dict "topic" .Vars.topic "title" (tmpl.Exec "ntfy.title" .) "message" (tmpl.Exec "ntfy.message" .) "priority" $priority "click" $click "actions" $actions | data.ToJSON }}
+      {{- end }}
+
+  # Compact Telegram-friendly rendering; the default template dumps values,
+  # every label, and bare URLs. To use it, point the Telegram contact point
+  # (UI-managed) at it: Message = {{ template "telegram.message" . }} and
+  # Parse mode = HTML. Label/annotation values must not contain raw HTML
+  # metacharacters (&, <, >) -- ours are hostnames, unit names, paths.
+  - orgId: 1
+    name: telegram
+    template: |
       {{ define "telegram.alert" -}}
       <b>{{ .Labels.alertname }}</b>{{ with .Labels.instance }} · <code>{{ . }}</code>{{ end }}
       {{ with .Annotations.summary }}{{ . }}
       {{ end -}}
       {{ with .Annotations.description }}{{ . }}
       {{ end -}}
-      <a href="{{ .GeneratorURL }}">source</a>{{ if eq .Status "firing" }} · <a href="{{ .SilenceURL }}">silence</a>{{ end }}{{ with .Labels.unit }} · <a href="{{ template "telegram.unitLogsURL" $ }}">logs</a>{{ end }}
+      <a href="{{ .GeneratorURL }}">source</a>{{ if eq .Status "firing" }} · <a href="{{ .SilenceURL }}">silence</a>{{ end }}{{ with .Labels.unit }} · <a href="{{ template "mhnet.unitLogsURL" $ }}">logs</a>{{ end }}
       {{ end }}
 
       {{ define "telegram.message" -}}
@@ -50,9 +97,11 @@ groups:
     interval: 5m
     rules:
       # One alert instance per failed unit, so notifications name each unit
-      # and the telegram template can link its journal. Healthy hosts export
+      # and the templates can link its journal. Healthy hosts export
       # no systemd_failed_unit series at all, hence noDataState OK; a dead
       # agent is still caught by StaleTextfileMetrics going NoData.
+      # rhea is left out: its units push to ntfy directly (mhnet.notify), with
+      # journal lines and without depending on Grafana being up.
       - uid: mhnet-failed-units
         title: FailedUnits
         condition: B
@@ -72,7 +121,7 @@ groups:
             model:
               refId: A
               instant: true
-              expr: sum by (instance, unit) (systemd_failed_unit)
+              expr: sum by (instance, unit) (systemd_failed_unit{instance!="rhea"})
           - refId: B
             datasourceUid: __expr__
             model:

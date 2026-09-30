@@ -76,18 +76,30 @@ directory means a gap, not a second copy.
 
 ## Grafana and alerting
 
-Datasources, the "mhnet node" dashboard (`services/monitoring/dashboards/`) and
-the alert rules (`services/monitoring/grafana-alerting.yml`) are provisioned on
-every start. Users, contact points and notification policies live in
-`grafana.db` and are managed in the UI.
+Datasources, the "mhnet node" dashboard (`services/monitoring/dashboards/`),
+the alert rules and the notification templates
+(`services/monitoring/grafana-alerting.yml`) are provisioned on every start.
+Users, contact points and notification policies live in `grafana.db` and are
+managed in the UI.
 
-- `FailedUnits` — one alert per failed unit; the notification links its
-  journal.
+- `FailedUnits` — one alert per failed unit, fleet only: rhea's units push to
+  ntfy directly (`mhnet.notify`, `docs/updates.md`).
 - `ConffileLeftovers` — `dpkg_conffile_leftovers > 0`.
 - `StaleTextfileMetrics` — a textfile older than 25h, i.e. a broken timer.
 
-The provisioned Telegram template needs the contact point's Message set to
-`{{ template "telegram.message" . }}` and Parse mode to `HTML`.
+Notifications go to the same ntfy topic as rhea's unit failures, through a
+Webhook contact point:
+
+| Setting          | Value                                                |
+| ---------------- | ---------------------------------------------------- |
+| URL              | `https://ntfy.sh` — the root, not the topic URL      |
+| HTTP method      | `POST`                                               |
+| Custom Payload   | `{{ template "ntfy.payload" . }}`                    |
+| Payload variable | `topic` = the topic name from `secrets/ntfy-url.age` |
+
+A single alert opens its rule on tap and gets Silence and Logs buttons; a group
+opens the alert list. Firing is priority 4, resolved 2. The Telegram template
+(`telegram.message`, Parse mode `HTML`) is still provisioned.
 
 ## Backups
 

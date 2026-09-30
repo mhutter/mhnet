@@ -13,9 +13,19 @@ let
   # it is also covered by mhnet.backup.paths already.
   dataDir = "${persist}/var/lib/caddy";
 
-  mkVHost = host: {
+  mkVHost = name: host: {
     serverAliases = host.aliases;
-    logFormat = lib.mkIf (!host.log) "output discard";
+    # The module's default path, plus group read for the log shipper
+    # (services/monitoring-agent.nix); Caddy creates the files 0600 otherwise.
+    logFormat =
+      if host.log then
+        ''
+          output file ${config.services.caddy.logDir}/access-${name}.log {
+            mode 0640
+          }
+        ''
+      else
+        "output discard";
     extraConfig = lib.concatStringsSep "\n" (
       # remote_ip is the peer Caddy sees. That is the real client only because
       # nothing proxies in front of rhea — put a Cloudflare orange cloud or a
@@ -144,7 +154,7 @@ in
             description = ''
               Write an access log to `/var/log/caddy/access-<host>.log`. Caddy
               rolls it itself (100 MiB, 10 files); /var/log is persisted but
-              excluded from backups.
+              excluded from backups. Group-readable, for the log shipper.
             '';
           };
 
@@ -186,16 +196,25 @@ in
         grace_period 10s
       '';
 
-      virtualHosts = lib.mapAttrs (_: mkVHost) cfg.hosts;
+      virtualHosts = lib.mapAttrs mkVHost cfg.hosts;
     };
 
     # dataDir is only created automatically at the default /var/lib/caddy, where
     # the module sets StateDirectory=caddy. ReadWritePaths and the caddy user's
     # home follow dataDir on their own.
-    systemd.tmpfiles.settings."10-caddy".${dataDir}.d = {
-      mode = "0700";
-      user = "caddy";
-      group = "caddy";
+    systemd.tmpfiles.settings."10-caddy" = {
+      ${dataDir}.d = {
+        mode = "0700";
+        user = "caddy";
+        group = "caddy";
+      };
+      # `mode` in logFormat only applies to files Caddy creates; this brings
+      # logs that predate it (or that anything else tightened) back in line.
+      "${config.services.caddy.logDir}/access-*.log".z = {
+        mode = "0640";
+        user = "caddy";
+        group = "caddy";
+      };
     };
 
     # ${persist} is a separate LV; the upstream unit orders itself against

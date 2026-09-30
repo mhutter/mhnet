@@ -66,11 +66,26 @@ VictoriaMetrics is snapshotted and Grafana's db dumped with `VACUUM INTO`
 before each run; the live data of both is excluded. VictoriaLogs is not backed
 up.
 
-## rhea's own metrics
+## rhea's own metrics and logs
 
-`services/monitoring-agent.nix` is the metrics half of the Ansible
-`monitoring_agent` role: node_exporter on loopback with the same collector
-allowlist, scraped every 30s by Vector and written to VictoriaMetrics directly
-on loopback, labelled `job="node"`, `instance="rhea"`. The failed-units
-textfile metric is ported; the dpkg conffile one has no NixOS equivalent, so
-its dashboard panel stays empty for rhea. Logs are not shipped yet.
+`services/monitoring-agent.nix` is the NixOS counterpart of the Ansible
+`monitoring_agent` role, with Vector in place of vmagent and journal-upload,
+writing to the hub on loopback.
+
+- **Metrics**: node_exporter with the same collector allowlist, scraped every
+  30s, labelled `job="node"`, `instance="rhea"`. The failed-units textfile
+  metric is ported; the dpkg conffile one has no NixOS equivalent, so its
+  dashboard panel stays empty for rhea. Bind mounts, `/run` and ramfs are left
+  out of the filesystem metrics.
+- **Journal**: shaped like the fleet's journal-upload entries — journald field
+  names, `level`, streams by `_HOSTNAME`, `_MACHINE_ID`, `_SYSTEMD_UNIT` — but
+  only a subset of the fields. Locally the journal keeps 14 days (1 GB at
+  most).
+- **Caddy access logs**: one entry per request, `log:caddy-access`, one stream
+  per `vhost`; e.g. `log:caddy-access vhost:immich.mhnet.app status:>=500`.
+
+Read positions are checkpointed under `/nix/persist/var/lib/vector` and only
+advance once VictoriaLogs accepted a batch, so restarts and reboots resume
+without loss; a restart can send the last few entries twice. Without a
+checkpoint Vector starts at the end: nothing older than its first start is
+shipped, and losing the directory means a gap, not a second copy.

@@ -108,11 +108,11 @@ in
       ### Own settings
       "Rate.Reputation.Gain" = 2;
       "Rate.Honor" = 2;
-      "Rate.XP.Kill" = 2;
-      "Rate.XP.Quest" = 2;
-      "Rate.XP.Quest.DF" = 2;
-      "Rate.XP.Explore" = 2;
-      "Rate.XP.Pet" = 2;
+      # "Rate.XP.Kill" = 2;
+      # "Rate.XP.Quest" = 2;
+      # "Rate.XP.Quest.DF" = 2;
+      # "Rate.XP.Explore" = 2;
+      # "Rate.XP.Pet" = 2;
 
     };
 

@@ -131,14 +131,18 @@ in
 
   systemd.services = {
     # postgresql.target is reached only after postgresql-password-docspell has
-    # applied the password, so both services find a usable role.
+    # applied the password, so both services find a usable role. The upstream
+    # units read their config from /etc with no restart trigger, so a changed
+    # config would otherwise wait for the next restart.
     docspell-restserver = {
       after = [ "postgresql.target" ];
+      restartTriggers = [ config.environment.etc."docspell-restserver.conf".source ];
       script = lib.mkForce "exec ${mkExec config.services.docspell-restserver "docspell-restserver"}";
       serviceConfig = extraServiceConfig // hardening;
     };
     docspell-joex = {
       after = [ "postgresql.target" ];
+      restartTriggers = [ config.environment.etc."docspell-joex.conf".source ];
       script = lib.mkForce "exec ${mkExec config.services.docspell-joex "docspell-joex"}";
       serviceConfig = extraServiceConfig // hardening;
     };

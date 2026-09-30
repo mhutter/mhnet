@@ -30,7 +30,8 @@
       efi = {
         # Only controls whether `bootctl install` may write the NVRAM boot
         # entry. Requires a writable efivarfs at install time, which is NOT
-        # guaranteed after kexec - check before installing (see README).
+        # guaranteed after kexec - check before installing (see
+        # docs/bootstrap.md).
         # Note the removable fallback /EFI/BOOT/BOOTX64.EFI is written by
         # bootctl either way, and is what survives losing a disk.
         canTouchEfiVariables = true;

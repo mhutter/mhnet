@@ -7,7 +7,8 @@
 #
 # Firefly III cannot import files by itself -- CAMT.053 and CSV imports need
 # the separate data importer, which is deliberately not deployed here: it is
-# run on demand as a local container against this instance's API (see README).
+# run on demand as a local container against this instance's API (see
+# docs/firefly.md).
 
 - name: Ensure Firefly III is configured
   ansible.builtin.assert:

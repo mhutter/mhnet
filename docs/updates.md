@@ -1,79 +1,60 @@
 # Updates
 
-Unattended, but on a schedule chosen so that the risky moment happens when
-someone is awake.
+Unattended, scheduled so the risky moment happens when someone is awake
+(`nixos/auto-upgrade.nix`).
 
-## The loop
+| When                      | What                                                                                                              |
+| ------------------------- | ----------------------------------------------------------------------------------------------------------------- |
+| Tue 04:00 UTC             | GitHub Actions `update-lock`: `nix flake update`, build, push `flake: bump inputs` to `main`                      |
+| Wed 06:00 UTC (+0–10 min) | `nixos-upgrade`: `nixos-rebuild boot` from `github:mhutter/mhnet`, then `switch`, or reboot if the kernel changed |
+| Thu 02:00 UTC (+0–30 min) | `nix-gc --delete-older-than 90d`                                                                                  |
 
-| When                      | What                                                                                                                                                          |
-| ------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Tue 04:00 UTC             | GitHub Actions `update-lock` runs `nix flake update`, builds the system closure, pushes `flake: bump inputs` to `main`                                        |
-| Wed 06:00 UTC (+0–10 min) | `nixos-upgrade.service` runs `nixos-rebuild boot --refresh --flake github:mhutter/mhnet`, then `switch` if the kernel is unchanged, or `shutdown -r +1` if not |
-| Thu 02:00 UTC             | `nix-gc`, `--delete-older-than 90d`                                                                                                                           |
+`nixpkgs` follows a release branch, so updates are backports and security
+fixes. The day between bump and deploy leaves time to revert a bad bump.
 
-`nixpkgs` is pinned to a release branch, so what arrives is backports and
-security fixes. The day of lead time between the lock bump and the deploy is
-there so a bad bump can be reverted before the host takes it.
+**`main` is the source of truth.** `just` deploys the working tree;
+`nixos-upgrade` deploys `main`. Anything not committed **and pushed** is
+reverted at the next upgrade.
 
-## Source of truth
+## Alerting
 
-`just` deploys the rsync'd working tree. `nixos-upgrade` deploys `main`.
-Anything on the host that is not committed **and pushed** is reverted at the
-next upgrade — commit before walking away.
+| Signal                 | Channel                                                             |
+| ---------------------- | ------------------------------------------------------------------- |
+| A wired unit failed    | ntfy push, high priority, with the last 30 journal lines            |
+| The system is degraded | the heartbeat pings Healthchecks' `/fail`, listing the failed units |
+| The host is gone       | no heartbeat; Healthchecks alerts after its grace period            |
 
-## One-off setup
+Wire a unit with `mhnet.notify.units = [ "myservice.service" ];`
+(`modules/notify.nix`). The heartbeat runs every 5 minutes
+(`mhnet.notify.interval`) and must stay out of `units` — its failure is the
+silence. It is also the only reason an unattended reboot is acceptable.
 
-Both secrets must exist or the flake will not evaluate, in CI or on the host:
+Setup, once — the flake does not evaluate without both secrets:
 
 ```sh
 agenix -e secrets/ntfy-url.age          # https://ntfy.sh/<unguessable-topic>
-agenix -e secrets/healthchecks-url.age  # https://hc-ping.com/<uuid>, no trailing slash
+agenix -e secrets/healthchecks-url.age  # https://hc-ping.com/<uuid>
 ```
 
-An ntfy topic is readable by anyone who knows its name, so treat the name as the
-password. Subscribe to it in the phone app.
-
-In Healthchecks, set the check to **period 1h, grace 2h**. The heartbeat pings
-hourly (`mhnet.notify.interval`), so roughly three hours of silence is the
-alert.
-
-The workflow needs nothing beyond the default `GITHUB_TOKEN`; it declares
-`permissions: contents: write` itself.
-
-## What you get told
-
-- **A unit failed** — ntfy push, high priority, carrying the last 30 journal
-  lines. Wired through `mhnet.notify.units`: currently `nixos-upgrade` and both
-  restic jobs.
-- **The system is degraded** — the hourly heartbeat pings `…/fail` instead,
-  listing the failed units. Catches anything nobody wired up explicitly.
-- **The host is gone** — no ping arrives and Healthchecks alerts after the
-  grace period. This is the one ntfy structurally cannot raise, and the only
-  reason the reboot is allowed to happen unattended at all.
-
-Add a unit to the first category with:
-
-```nix
-mhnet.notify.units = [ "myservice.service" ];
-```
+The ntfy topic name is the password; subscribe to it in the phone app. In
+Healthchecks, set a period above the ping interval and a grace that covers a
+reboot. The workflow needs only the default `GITHUB_TOKEN`.
 
 ## When it goes wrong
 
-- **It did not come back up.** Hetzner Robot → Rescue, or a KVM session for the
-  boot menu. systemd-boot keeps `configurationLimit = 10` generations; pick the
-  one below the newest. `editor = false`, so the menu is the only lever from
-  the console — see [bootstrap](bootstrap.md).
-- **Activation failed, host still up.** `journalctl -u nixos-upgrade`, then
-  either `nixos-rebuild switch --rollback` or fix it and `just switch`.
-- **Pause updates.** `systemctl stop nixos-upgrade.timer` holds only until the
-  next activation or reboot re-creates it. To pause for longer, set
-  `system.autoUpgrade.enable = false` and deploy.
-- **Release upgrade.** 26.05 → 26.11 is never automatic: bump `nixpkgs.url` by
-  hand, read the release notes, `just dry`, then deploy and watch.
+- **Did not come back up.** Robot → Rescue, or KVM for the boot menu, and pick
+  the generation below the newest (10 kept; `editor = false`, so the menu is the
+  only lever). See `docs/bootstrap.md`.
+- **Activation failed, host up.** `journalctl -u nixos-upgrade`, then
+  `nixos-rebuild switch --rollback`, or fix and `just switch`.
+- **Pause updates.** `systemctl stop nixos-upgrade.timer` lasts until the next
+  activation or reboot; for longer, `system.autoUpgrade.enable = false` and
+  deploy.
+- **Release upgrade** (26.05 → 26.11) is never automatic: bump `nixpkgs.url`,
+  read the release notes, `just dry`, deploy and watch.
 
 ## Garbage collection
 
-One generation a week means 90 days keeps about thirteen — comfortably more
-than the ten entries systemd-boot offers, so every entry the boot menu shows
-still has a closure behind it. `/nix` is 200G; deduplication is already handled
-by `auto-optimise-store`.
+One generation a week and 90 days of retention keep about thirteen — more than
+the ten boot entries, so every entry has a closure behind it. The store is
+deduplicated by `auto-optimise-store`.

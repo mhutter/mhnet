@@ -58,8 +58,9 @@ Secrets, inside direnv / `nix develop`: `agenix -e secrets/<name>.age`,
 - `modules/` — cross-cutting `mhnet.*` options.
 - `services/` — one file per service.
 - `secrets/*.age`, `secrets.nix` — agenix; the age identity is the SSH host key.
-- `docs/` — `bootstrap.md` (install, verification, disk replacement),
-  `backup.md`, `monitoring.md`, `postgresql.md`, `proxy.md`, `updates.md`.
+- `docs/` — shared by both halves: `bootstrap.md` (install, verification, disk
+  replacement), `backup.md`, `monitoring.md`, `postgresql.md`, `proxy.md`,
+  `updates.md`, `cloudflared.md`, `firefly.md`.
 - `.github/workflows/update-lock.yml` — the only thing that bumps `flake.lock`.
 
 ### Before editing
@@ -124,22 +125,19 @@ ansible-vault edit ansible/inventory/hosts.yml              # edit secrets
 - `ansible/inventory.example.yml` — unencrypted skeleton of the above,
   documenting every required var; keep in sync when roles gain inventory vars
 - `ansible/roles/` — `common`, `firewall`, `backup`, `cloudflared`,
-  `postgresql`, `dns64`, `monitoring_agent` apply broadly; `pocket_id`,
-  `miniflux`, `silverbullet`, `firefly`, `monitoring_hub` are per-app
+  `postgresql`, `dns64`, `monitoring_agent` apply broadly; `pocket_id` and
+  `firefly` are per-app
 - `ansible/playbooks/site.yml` — main playbook, run against `all` plus per-app
   host groups; roles are tagged with their own name for selective runs
 - `ansible/playbooks/bootstrap.yml` — minimal `common`-only pass for brand-new
   hosts
-- `ansible/docs/` — one file per role that needs explaining (`backup`,
-  `cloudflared`, `postgresql`, `monitoring`, `silverbullet`, `firefly`),
-  linked from `README.md`
 - `scripts/` — shared with the NixOS half; `b2-create-restic-key.sh` mints the
   per-host B2 key both backup implementations use
 - `.vaultpass` — local vault password file (gitignored), used by
   `ansible.cfg`/`ansible-vault`
 
-See `ansible/docs/` for details on those roles (onboarding a host, required
-vars, manual operations).
+Role details (onboarding a host, required vars, manual operations) are in
+`docs/`, next to rhea's.
 
 ## Secrets
 

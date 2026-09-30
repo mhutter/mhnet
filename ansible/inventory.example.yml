@@ -27,7 +27,7 @@ all:
     unattended_upgrades_reboot_time: "04:00"
 
     # roles/backup: B2 bucket; lifecycle must be "keep only the last
-    # version" (see README).
+    # version" (see docs/backup.md).
     backup_b2_bucket: mhnet-restic
 
     # roles/cloudflared: API token with Account > Cloudflare Tunnel > Edit
@@ -35,12 +35,9 @@ all:
     cloudflare_account_id: "<cloudflare-account-id>"
     cloudflare_api_token: "<secret from the Cloudflare dashboard>"
 
-    # Monitoring: every host pushes metrics and logs here.
-    monitoring_ingest_hostname: mon.example.com
-    # Optional: push to the hub on rhea (Caddy on 443) instead of the
-    # Ansible hub's :8428/:9428. Grafana's datasources follow.
-    # monitoring_metrics_url: https://metrics.example.com
-    # monitoring_logs_url: https://logs.example.com
+    # Monitoring: every host pushes metrics and logs to the hub on rhea.
+    monitoring_metrics_url: https://metrics.example.com
+    monitoring_logs_url: https://logs.example.com
     monitoring_remote_write_password: "<secret>"
 
   children:
@@ -80,25 +77,6 @@ all:
           # Keep an offsite copy next to backup_restic_password: without it
           # the encrypted database columns cannot be read back.
           firefly_app_key: "<secret>"
-
-    monitoring:
-      hosts:
-        hbc-monitoring:
-          ansible_host: 2001:db8:3::1
-          cloudflared_tunnel_id: "<tunnel id>"
-          cloudflared_tunnel_token: "<secret: tunnel token>"
-          backup_b2_account_id: "<B2 key id>"
-          backup_b2_account_key: "<secret: B2 key>"
-          backup_restic_password: "<secret -- keep an offsite copy>"
-
-          monitoring_grafana_hostname: grafana.example.com
-          grafana_admin_password: "<secret>"
-          # Ingest ports open to the fleet only. Sources must resolve to
-          # IPv6 literals -- list them explicitly if any ansible_host is a
-          # DNS name.
-          firewall_allow_tcp_from:
-            - ports: [8428, 9428]
-              sources: "{{ groups['all'] | map('extract', hostvars, 'ansible_host') | list }}"
 
     # Brand-new hosts go here temporarily for `just bootstrap`: cloud images
     # answer as root (or ubuntu) on port 22 until roles/common hardens sshd.

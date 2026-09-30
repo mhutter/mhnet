@@ -1,24 +1,12 @@
 ---
 # Required from the inventory (no usable defaults):
-# monitoring_ingest_hostname -- public DNS name of the hub's ingest endpoints
-#   (unused once monitoring_metrics_url and monitoring_logs_url are set)
-# monitoring_remote_write_password -- basic auth password for the metrics API
+# monitoring_metrics_url, monitoring_logs_url -- base URLs (no path) of the
+#   hub's metrics and logs APIs, e.g. https://metrics.example.com
+# monitoring_remote_write_password -- basic auth password for both
 
-# Shared with monitoring_hub; keep the two roles' defaults in sync.
+# Shared with services/monitoring.nix.
 monitoring_remote_write_user: monitoring
-monitoring_metrics_port: 8428
-monitoring_logs_port: 9428
-
-# Base URLs (no path) of the metrics and logs APIs. The defaults are the
-# Ansible hub's ports; override both in the inventory to push to hosts that
-# serve them behind a reverse proxy on 443 instead, e.g. rhea.
-monitoring_metrics_url: "https://{{ monitoring_ingest_hostname }}:{{ monitoring_metrics_port }}"
-monitoring_logs_url: "https://{{ monitoring_ingest_hostname }}:{{ monitoring_logs_port }}"
 monitoring_scrape_interval: 30s
-
-# Whether this host runs the hub's VictoriaMetrics server (and so must not
-# have it masked).
-monitoring_agent_is_hub: "{{ 'monitoring' in group_names }}"
 
 # Cap for vmagent's on-disk buffer while the hub is unreachable.
 monitoring_agent_max_buffer: 512MiB

@@ -8,25 +8,22 @@
 - name: Ensure monitoring agent variables are configured
   ansible.builtin.assert:
     that:
-      # False while the defaults reference an undefined
-      # monitoring_ingest_hostname.
       - monitoring_metrics_url is defined
       - monitoring_logs_url is defined
       - monitoring_remote_write_password is defined
     fail_msg: >-
       Missing monitoring variables for {{ inventory_hostname }}. Add
-      monitoring_ingest_hostname (or monitoring_metrics_url and
-      monitoring_logs_url) and monitoring_remote_write_password at the
-      `all` level of the vaulted inventory (see README).
+      monitoring_metrics_url, monitoring_logs_url and
+      monitoring_remote_write_password at the `all` level of the vaulted
+      inventory (see docs/monitoring.md).
 
 # victoria-metrics is installed only for its vmagent binary, and the package
 # auto-starts the bundled server; masking beforehand keeps it from ever
-# running (or briefly listening unauthenticated) on non-hub hosts.
-- name: Mask the VictoriaMetrics server on non-hub hosts
+# running (or briefly listening unauthenticated).
+- name: Mask the VictoriaMetrics server
   ansible.builtin.systemd_service:
     name: victoria-metrics.service
     masked: true
-  when: not monitoring_agent_is_hub
 
 - name: Install monitoring agent packages
   ansible.builtin.apt:

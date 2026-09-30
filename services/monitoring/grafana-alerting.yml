@@ -1,4 +1,4 @@
-# Shared by services/monitoring.nix and ansible/roles/monitoring_hub.
+# Provisioned by services/monitoring.nix.
 # Alert rules only; contact points and notification policies stay UI-managed,
 # these rules route through the default policy.
 apiVersion: 1
@@ -92,7 +92,7 @@ groups:
           summary: >-
             {{ $labels.instance }} has dpkg conffile leftovers under /etc;
             diff each *.dpkg-dist/-new/-old/*.ucf-dist against the kept file
-            and delete it once reconciled (see README).
+            and delete it once reconciled (see docs/monitoring.md).
         data:
           - refId: A
             relativeTimeRange: { from: 600, to: 0 }

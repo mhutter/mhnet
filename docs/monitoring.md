@@ -65,3 +65,12 @@ Telegram contact point and the notification policy in the UI.
 VictoriaMetrics is snapshotted and Grafana's db dumped with `VACUUM INTO`
 before each run; the live data of both is excluded. VictoriaLogs is not backed
 up.
+
+## rhea's own metrics
+
+`services/monitoring-agent.nix` is the metrics half of the Ansible
+`monitoring_agent` role: node_exporter on loopback with the same collector
+allowlist, scraped every 30s by Vector and written to VictoriaMetrics directly
+on loopback, labelled `job="node"`, `instance="rhea"`. The failed-units
+textfile metric is ported; the dpkg conffile one has no NixOS equivalent, so
+its dashboard panel stays empty for rhea. Logs are not shipped yet.

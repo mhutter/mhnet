@@ -24,6 +24,7 @@
     ../services/languagetool.nix
     ../services/miniflux.nix
     ../services/monitoring.nix
+    ../services/monitoring-agent.nix
     ../services/mysql.nix
     ../services/nix-cache-warm.nix
     ../services/nix-serve.nix

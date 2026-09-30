@@ -163,11 +163,11 @@
     "mod-individual-progression": {
       "flake": false,
       "locked": {
-        "lastModified": 1790234398,
-        "narHash": "sha256-yR+qL5E4Q75VaJ3P1XQdYesEwY7PA3t4bi14B7rZPSg=",
+        "lastModified": 1790769138,
+        "narHash": "sha256-IyGl2m8KZTuzgX/lGzKDrwF6CbxXYBnCdjKcrpdcf5I=",
         "owner": "ZhengPeiRu21",
         "repo": "mod-individual-progression",
-        "rev": "0180b9172d0d29bbce53dd84af133b3d998b0622",
+        "rev": "723c510c685cca184d8b96b6c22452bd48fda23a",
         "type": "github"
       },
       "original": {

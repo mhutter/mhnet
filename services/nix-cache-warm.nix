@@ -42,23 +42,10 @@ in
     };
 
     script = ''
-      # GitHub intermittently fails the TLS handshake ("SSL connect error",
-      # "tlsv1 alert internal error"); nix's own retries are spent within
-      # seconds, so give it minutes instead.
-      retry() {
-        local n
-        for n in 1 2 3; do
-          "$@" && return 0
-          [ "$n" -lt 3 ] && sleep 300
-        done
-        return 1
-      }
-
       src="$RUNTIME_DIRECTORY/src"
-      clone() { rm -rf "$src" && git clone --quiet --depth 1 ${flake} "$src"; }
-      retry clone
+      git clone --quiet --depth 1 ${flake} "$src"
       cp "$src/secrets.fake.nix" "$src/secrets.nix"
-      retry nix flake update --flake "$src"
+      nix flake update --flake "$src"
 
       hosts="$(nix eval --raw "$src#nixosConfigurations" \
         --apply 'c: builtins.concatStringsSep "\n" (builtins.attrNames c)')"
@@ -69,7 +56,7 @@ in
         # No --print-build-logs: tens of thousands of lines per run in the
         # journal; a failed build still prints its last lines, the rest is in
         # `nix log`.
-        retry nix build \
+        nix build \
           --out-link "${rootsDir}/$host" \
           "$src#nixosConfigurations.$host.config.system.build.toplevel" \
           || failed="$failed $host"

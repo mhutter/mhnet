@@ -106,20 +106,20 @@ in
       "DBC.EnforceItemAttributes" = 0;
 
       ### Own settings
-      "Rate.Reputation.Gain" = 2;
-      "Rate.Honor" = 2;
-      # "Rate.XP.Kill" = 2;
-      # "Rate.XP.Quest" = 2;
-      # "Rate.XP.Quest.DF" = 2;
-      # "Rate.XP.Explore" = 2;
-      # "Rate.XP.Pet" = 2;
+      "Rate.Reputation.Gain" = 3;
+      "Rate.Honor" = 3;
+      "Rate.XP.Kill" = 3;
+      "Rate.XP.Quest" = 3;
+      "Rate.XP.Quest.DF" = 3;
+      "Rate.XP.Explore" = 3;
+      "Rate.XP.Pet" = 3;
 
     };
 
     # https://github.com/mod-playerbots/mod-playerbots/blob/master/conf/playerbots.conf.dist
     moduleSettings."playerbots.conf" = {
-      "AiPlayerbot.MinRandomBots" = 512;
-      "AiPlayerbot.MaxRandomBots" = 2048;
+      "AiPlayerbot.MinRandomBots" = 256;
+      "AiPlayerbot.MaxRandomBots" = 1024;
       # Disable randombots when no real players are logged in
       "AiPlayerbot.DisabledWithoutRealPlayer" = 1;
 
@@ -148,7 +148,7 @@ in
       "IndividualProgression.AllowEarlyDungeonSet2" = 1;
 
       ## TODO: research what exactly this does
-      # "IndividualProgression.AllowEarlyScourgeBosses" = 1;
+      "IndividualProgression.AllowEarlyScourgeBosses" = 1;
     };
 
     # https://github.com/NathanHandley/mod-ah-bot-plus/blob/master/conf/mod_ahbot.conf.dist

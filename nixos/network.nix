@@ -5,7 +5,10 @@ in
 {
   networking = {
     hostName = "rhea";
-    domain = "mhnet.dev";
+    # Not `domain`: with nameservers set, that also writes `domain mhnet.dev`
+    # to resolv.conf, and the *.mhnet.dev wildcard then answers every failed
+    # AAAA lookup (e.g. github.com.mhnet.dev) with rhea's own address.
+    fqdn = "rhea.mhnet.dev";
     useDHCP = false;
 
     interfaces.${interface} = {

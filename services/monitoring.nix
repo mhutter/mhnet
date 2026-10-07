@@ -135,10 +135,15 @@ in
     # The users.users.grafana home, created on activation.
     dataDir = grafanaDataDir;
 
-    # Core datasources (prometheus backs VictoriaMetrics) are built in; only
-    # the VictoriaLogs one is a plugin. Declarative plugins also turn off
-    # Grafana's background installer and its plugin update checks.
-    declarativePlugins = [ pkgs.unstable.grafanaPlugins.victoriametrics-logs-datasource ];
+    # Declarative plugins turn off Grafana's background installer and its
+    # plugin update checks -- including the preinstall of datasources
+    # decoupled from core. Since 13.2 that covers prometheus (backing
+    # VictoriaMetrics), so it must be listed or every query and alert rule
+    # fails with plugin.notRegistered.
+    declarativePlugins = with pkgs.unstable.grafanaPlugins; [
+      prometheus
+      victoriametrics-logs-datasource
+    ];
 
     settings = {
       server = {

@@ -49,11 +49,11 @@
     "azerothcore-src": {
       "flake": false,
       "locked": {
-        "lastModified": 1789917047,
-        "narHash": "sha256-qpR9rjeQUvGwZUXPeY+2xOTtp99vyydv8wpOWDIRVzg=",
+        "lastModified": 1790951454,
+        "narHash": "sha256-rAkzspdxd5kTaqv/tg4xO9wuav8+FF+EoTPhMLv44lM=",
         "owner": "mod-playerbots",
         "repo": "azerothcore-wotlk",
-        "rev": "7f12e89ee5f467a50e62eba1d525eac7dc953d03",
+        "rev": "f19a18799a35f7c24bdcdc9ea399c601f166259b",
         "type": "github"
       },
       "original": {
@@ -163,11 +163,11 @@
     "mod-individual-progression": {
       "flake": false,
       "locked": {
-        "lastModified": 1790769138,
-        "narHash": "sha256-IyGl2m8KZTuzgX/lGzKDrwF6CbxXYBnCdjKcrpdcf5I=",
+        "lastModified": 1791066050,
+        "narHash": "sha256-ecb9Dm+/Jl/4tjHnWZoksfmq1FCJ/GzM0UirpCcIoRE=",
         "owner": "ZhengPeiRu21",
         "repo": "mod-individual-progression",
-        "rev": "723c510c685cca184d8b96b6c22452bd48fda23a",
+        "rev": "60336b349cce2bc209d154bb840f2370f1cc16f2",
         "type": "github"
       },
       "original": {
@@ -179,11 +179,11 @@
     "mod-playerbots-src": {
       "flake": false,
       "locked": {
-        "lastModified": 1789917066,
-        "narHash": "sha256-2x1e2nQvCxWplFnRNFHLSsQYxlbo9sZvfwE5yHykDzg=",
+        "lastModified": 1790951444,
+        "narHash": "sha256-qnjJUbTd/2bXAIGT7Su7qxEY3Pa4anji6lHFBYzkRMs=",
         "owner": "mod-playerbots",
         "repo": "mod-playerbots",
-        "rev": "7bae1b5c58c76a0aa20381155edc08096d1485b2",
+        "rev": "037c01418b5d01506917a3db9b44fd56ac5f965c",
         "type": "github"
       },
       "original": {

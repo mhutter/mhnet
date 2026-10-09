@@ -74,6 +74,11 @@ in
 
     extraModules = azerothcoreModules;
 
+    authserver.settings = {
+      ## Enable timestamps in logfiles
+      "Appender.Auth" = "2,5,1,Auth.log,w";
+    };
+
     # https://github.com/mod-playerbots/azerothcore-wotlk/blob/Playerbot/src/server/apps/worldserver/worldserver.conf.dist
     worldserver.settings = {
       ## Recommendations from
@@ -114,6 +119,10 @@ in
       "Rate.XP.Explore" = 3;
       "Rate.XP.Pet" = 3;
 
+      ## Enable timestamps in logfiles
+      "Appender.Server" = "2,5,1,Server.log,w";
+      "Appender.Playerbots" = "2,5,1,Playerbots.log,w";
+      "Appender.Errors" = "2,2,1,Errors.log,w";
     };
 
     # https://github.com/mod-playerbots/mod-playerbots/blob/master/conf/playerbots.conf.dist

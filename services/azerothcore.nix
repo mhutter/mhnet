@@ -163,6 +163,7 @@ in
     # https://github.com/NathanHandley/mod-ah-bot-plus/blob/master/conf/mod_ahbot.conf.dist
     moduleSettings."mod_ahbot.conf" = {
       "AuctionHouseBot.EnableSeller" = true;
+      "AuctionHouseBot.EnableBuyer" = true;
       "AuctionHouseBot.GUIDs" = 2554; # name: ahbot
     };
   };

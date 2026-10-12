@@ -15,6 +15,53 @@ let
     pkgs.curl
     config.systemd.package
   ];
+
+  # A oneshot template instantiated per unit: `on<Event> = [ "<name>@%n.service" ]`
+  # and systemd expands %n to the triggering unit's full name, which arrives
+  # here as the instance, %i.
+  mkPush =
+    {
+      event,
+      lines,
+      priority,
+      tags,
+    }:
+    {
+      description = "Push a notification that %i ${event}";
+      # Deliberately no wantedBy: only ever started by an On<Event>=.
+      after = [ "network-online.target" ];
+      wants = [ "network-online.target" ];
+      path = tools;
+      serviceConfig.Type = "oneshot";
+      scriptArgs = "%i";
+      script = ''
+        unit="$1"
+
+        # ntfy.sh caps a message at 4 KiB; leave room for the headers.
+        body="$(journalctl --unit "$unit" --lines ${toString lines} --no-pager --output cat 2>/dev/null | tail -c 2500)"
+        [ -n "$body" ] || body="(no journal output)"
+
+        # Body over stdin: --data-binary "$body" would read a journal line
+        # that happens to start with @ as a file name.
+        printf '%s' "$body" | curl --fail --silent --show-error --max-time 20 --retry 3 \
+          --header "Title: ${host}: $unit ${event}" \
+          --header "Priority: ${priority}" \
+          --header "Tags: ${tags}" \
+          --data-binary @- \
+          "$(cat ${ntfy})" >/dev/null
+      '';
+    };
+
+  wire =
+    event: template: units:
+    lib.listToAttrs (
+      map (
+        unit:
+        lib.nameValuePair (lib.removeSuffix ".service" unit) {
+          ${event} = [ "${template}@%n.service" ];
+        }
+      ) units
+    );
 in
 {
   options.mhnet.notify = {
@@ -26,6 +73,16 @@ in
         Units that get an `OnFailure=` push. Service modules append their own —
         see docs/updates.md. Names carry the `.service` suffix, because that is
         what systemd's `%n` expands to.
+      '';
+    };
+
+    successUnits = lib.mkOption {
+      type = lib.types.listOf lib.types.str;
+      default = [ ];
+      example = [ "nixos-upgrade.service" ];
+      description = ''
+        Units that get a low-priority `OnSuccess=` push. Meant for rare,
+        consequential jobs — not for anything that runs more than daily.
       '';
     };
 
@@ -48,33 +105,20 @@ in
 
     systemd.services = {
       ## Failure pushes — ntfy tells you *what* broke
-      # Instantiated per failing unit: a unit sets
-      # `onFailure = [ "notify-failure@%n.service" ]` and systemd expands %n
-      # to its own full name, which arrives here as the instance, %i.
-      "notify-failure@" = {
-        description = "Push a failure notification for %i";
-        # Deliberately no wantedBy: only ever started by an OnFailure=.
-        after = [ "network-online.target" ];
-        wants = [ "network-online.target" ];
-        path = tools;
-        serviceConfig.Type = "oneshot";
-        scriptArgs = "%i";
-        script = ''
-          unit="$1"
+      "notify-failure@" = mkPush {
+        event = "failed";
+        lines = 30;
+        priority = "high";
+        tags = "rotating_light";
+      };
 
-          # ntfy.sh caps a message at 4 KiB; leave room for the headers.
-          body="$(journalctl --unit "$unit" --lines 30 --no-pager --output cat 2>/dev/null | tail -c 2500)"
-          [ -n "$body" ] || body="(no journal output)"
-
-          # Body over stdin: --data-binary "$body" would read a journal line
-          # that happens to start with @ as a file name.
-          printf '%s' "$body" | curl --fail --silent --show-error --max-time 20 --retry 3 \
-            --header "Title: ${host}: $unit failed" \
-            --header "Priority: high" \
-            --header "Tags: rotating_light" \
-            --data-binary @- \
-            "$(cat ${ntfy})" >/dev/null
-        '';
+      ## Success pushes — a quiet receipt, e.g. "the upgrade ran"
+      # A handful of lines is enough to see whether a reboot was scheduled.
+      "notify-success@" = mkPush {
+        event = "succeeded";
+        lines = 5;
+        priority = "low";
+        tags = "white_check_mark";
       };
 
       ## Heartbeat — Healthchecks tells you *that* nothing broke
@@ -116,13 +160,9 @@ in
         '';
       };
     }
-    // lib.listToAttrs (
-      map (
-        unit:
-        lib.nameValuePair (lib.removeSuffix ".service" unit) {
-          onFailure = [ "notify-failure@%n.service" ];
-        }
-      ) cfg.units
+    # recursiveUpdate, not //: a unit may sit in both lists.
+    // lib.recursiveUpdate (wire "onFailure" "notify-failure" cfg.units) (
+      wire "onSuccess" "notify-success" cfg.successUnits
     );
 
     # Spread the pings off the top of the hour; Healthchecks' grace absorbs it.

@@ -37,13 +37,16 @@ A new flake input is bumped only once it is added to the list in
 | Signal                 | Channel                                                             |
 | ---------------------- | ------------------------------------------------------------------- |
 | A wired unit failed    | ntfy push, high priority, with the last 30 journal lines            |
+| A wired unit succeeded | ntfy push, low priority, with the last 5 journal lines              |
 | The system is degraded | the heartbeat pings Healthchecks' `/fail`, listing the failed units |
 | The host is gone       | no heartbeat; Healthchecks alerts after its grace period            |
 
 Wire a unit with `mhnet.notify.units = [ "myservice.service" ];`
-(`modules/notify.nix`). The heartbeat runs every 5 minutes
-(`mhnet.notify.interval`) and must stay out of `units` — its failure is the
-silence. It is also the only reason an unattended reboot is acceptable.
+(`modules/notify.nix`), and for a success receipt with
+`mhnet.notify.successUnits` (rhea: `nixos-upgrade.service`). The heartbeat
+runs every 5 minutes (`mhnet.notify.interval`) and must stay out of `units` —
+its failure is the silence. It is also the only reason an unattended reboot is
+acceptable.
 
 Setup, once — the flake does not evaluate without both secrets:
 

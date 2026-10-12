@@ -38,12 +38,16 @@
     persistent = false;
 
     # GC gets its own schedule below. Leaving this off also keeps
-    # nixos-upgrade's OnSuccess= free, which the module would otherwise claim
-    # and collide with the notify wiring.
+    # nixos-upgrade's OnSuccess= free for the success push below, which the
+    # module would otherwise claim.
     runGarbageCollection = false;
   };
 
-  mhnet.notify.units = [ "nixos-upgrade.service" ];
+  mhnet.notify = {
+    units = [ "nixos-upgrade.service" ];
+    # Weekly, so a quiet receipt is welcome rather than noise.
+    successUnits = [ "nixos-upgrade.service" ];
+  };
 
   ## Garbage collection
   # /nix is 200G, and unattended rebuilds grow the store without bound. At

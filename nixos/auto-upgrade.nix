@@ -43,6 +43,18 @@
     runGarbageCollection = false;
   };
 
+  # GitHub (flake inputs, release assets) returns transient 5xx often enough
+  # that one bad minute shouldn't cost a week. Three retries end by ~07:00,
+  # well inside the reboot window. OnFailure= only fires once they run out.
+  systemd.services.nixos-upgrade = {
+    serviceConfig = {
+      Restart = "on-failure";
+      RestartSec = "10min";
+    };
+    startLimitBurst = 4;
+    startLimitIntervalSec = 3600;
+  };
+
   mhnet.notify = {
     units = [ "nixos-upgrade.service" ];
     # Weekly, so a quiet receipt is welcome rather than noise.

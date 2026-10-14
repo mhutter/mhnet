@@ -3,11 +3,11 @@
 Unattended, scheduled so the risky moment happens when someone is awake
 (`nixos/auto-upgrade.nix`).
 
-| When                      | What                                                                                                                           |
-| ------------------------- | ------------------------------------------------------------------------------------------------------------------------------ |
-| Tue 04:00 UTC             | GitHub Actions `update-lock`: `nix flake update` of all but the AzerothCore inputs, build, push `flake: bump inputs` to `main` |
-| Wed 06:00 UTC (+0–10 min) | `nixos-upgrade`: `nixos-rebuild boot` from `github:mhutter/mhnet`, then `switch`, or reboot if the kernel changed              |
-| Thu 02:00 UTC (+0–30 min) | `nix-gc --delete-older-than 90d`                                                                                               |
+| When                      | What                                                                                                                                                         |
+| ------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| Tue 04:00 UTC             | GitHub Actions `update-lock`: `nix flake update` of all but the AzerothCore inputs, build, push `flake: bump inputs` to `main`                               |
+| Wed 06:00 UTC (+0–10 min) | `nixos-upgrade`: `nixos-rebuild boot` from `github:mhutter/mhnet`, then `switch`, or reboot if the kernel changed; on failure retried 3× at 10 min intervals |
+| Thu 02:00 UTC (+0–30 min) | `nix-gc --delete-older-than 90d`                                                                                                                             |
 
 `nixpkgs` follows a release branch, so updates are backports and security
 fixes. The day between bump and deploy leaves time to revert a bad bump.
@@ -77,3 +77,7 @@ reboot. The workflow needs only the default `GITHUB_TOKEN`.
 One generation a week and 90 days of retention keep about thirteen — more than
 the ten boot entries, so every entry has a closure behind it. The store is
 deduplicated by `auto-optimise-store`.
+
+`keep-outputs` (`nixos/nix.nix`) keeps the build inputs of live paths. Sources of
+locally built packages (Docspell, AzerothCore) survive GC, so a rebuild after a
+nixpkgs bump doesn't fetch them from GitHub again.

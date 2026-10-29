@@ -98,7 +98,7 @@ cat /mnt/nix/persist/etc/ssh/ssh_host_ed25519_key.pub
 ssh-keygen -lf /mnt/nix/persist/etc/ssh/ssh_host_ed25519_key.pub
 ```
 
-Put the public key into `secrets.nix` as `rhea = "ssh-ed25519 … rhea";`, rekey
+Put the public key into `agenix-rules.nix` as `rhea = "ssh-ed25519 … rhea";`, rekey
 (`agenix -r`) and repeat step 3: the host decrypts its secrets with this key.
 When rebuilding from a backup, restore the old key instead
 (`/nix/persist/etc/ssh`, `docs/backup.md`) and skip the rekey.
@@ -176,4 +176,4 @@ output for the rsync warning, then `diff -r -x random-seed /boot /boot2`.
 
 agenix, keyed on the host key from step 5. From the devShell:
 `agenix -e secrets/<name>.age`, and `agenix -r` after changing recipients in
-`secrets.nix`.
+`agenix-rules.nix`.

@@ -39,7 +39,7 @@ agenix, disko, impermanence.
 | `just switch` | activate **and** make it the boot default       |
 
 Secrets, inside direnv / `nix develop`: `agenix -e secrets/<name>.age`,
-`agenix -r` to rekey after changing recipients in `secrets.nix`.
+`agenix -r` to rekey after changing recipients in `agenix-rules.nix`.
 
 - Every recipe rsyncs the working tree (uncommitted included) to the host and
   runs `nixos-rebuild` over SSH **there** — nothing is evaluated or built
@@ -57,7 +57,7 @@ Secrets, inside direnv / `nix develop`: `agenix -e secrets/<name>.age`,
   everything, including `modules/` and `services/`.
 - `modules/` — cross-cutting `mhnet.*` options.
 - `services/` — one file per service.
-- `secrets/*.age`, `secrets.nix` — agenix; the age identity is the SSH host key.
+- `secrets/*.age`, `agenix-rules.nix` — agenix; the age identity is the SSH host key.
 - `docs/` — shared by both halves: `bootstrap.md` (install, verification, disk
   replacement), `backup.md`, `monitoring.md`, `postgresql.md`, `proxy.md`,
   `updates.md`, `cloudflared.md`, `firefly.md`.
@@ -145,7 +145,7 @@ Role details (onboarding a host, required vars, manual operations) are in
 ## Secrets
 
 Two systems, deliberately separate: agenix for `rhea` (recipients in
-`secrets.nix`, the age identity is the host's SSH key) and Ansible Vault for
+`agenix-rules.nix`, the age identity is the host's SSH key) and Ansible Vault for
 the fleet inventory. Neither can reach the other's hosts.
 
 Never generate secrets, edit vaulted inventory values, or print decrypted

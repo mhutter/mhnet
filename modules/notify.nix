@@ -8,7 +8,10 @@ let
   cfg = config.mhnet.notify;
   host = config.networking.hostName;
 
-  ntfy = config.age.secrets.ntfy-url.path;
+  # Telegram, not ntfy.sh: anonymous ntfy.sh quota is per IP, a free account
+  # does not change that, and rhea's IPv6 bucket is shared with neighbours
+  # who exhaust it daily.
+  telegram = config.age.secrets.telegram-env.path;
   healthchecks = config.age.secrets.healthchecks-url.path;
 
   tools = [
@@ -23,8 +26,8 @@ let
     {
       event,
       lines,
-      priority,
-      tags,
+      icon,
+      silent,
     }:
     {
       description = "Push a notification that %i ${event}";
@@ -32,23 +35,37 @@ let
       after = [ "network-online.target" ];
       wants = [ "network-online.target" ];
       path = tools;
-      serviceConfig.Type = "oneshot";
+      serviceConfig = {
+        Type = "oneshot";
+        EnvironmentFile = telegram;
+      };
       scriptArgs = "%i";
       script = ''
         unit="$1"
 
-        # ntfy.sh caps a message at 4 KiB; leave room for the headers.
-        body="$(journalctl --unit "$unit" --lines ${toString lines} --no-pager --output cat 2>/dev/null | tail -c 2500)"
+        # Telegram caps a message at 4096 characters. A byte cut can split a
+        # line, and a multi-byte character with it, so drop the partial line.
+        body="$(journalctl --unit "$unit" --lines ${toString lines} --no-pager --output cat 2>/dev/null)"
+        if [ "''${#body}" -gt 2500 ]; then
+          body="$(printf '%s' "$body" | tail -c 2500 | tail -n +2)"
+        fi
         [ -n "$body" ] || body="(no journal output)"
+        body="$(printf '%s' "$body" | sed -e 's/&/\&amp;/g' -e 's/</\&lt;/g' -e 's/>/\&gt;/g')"
 
-        # Body over stdin: --data-binary "$body" would read a journal line
-        # that happens to start with @ as a file name.
-        printf '%s' "$body" | curl --fail --silent --show-error --max-time 20 --retry 3 \
-          --header "Title: ${host}: $unit ${event}" \
-          --header "Priority: ${priority}" \
-          --header "Tags: ${tags}" \
-          --data-binary @- \
-          "$(cat ${ntfy})" >/dev/null
+        # The token is part of the URL, so it goes in through a file
+        # descriptor rather than the process list. Text over stdin.
+        if ! out="$(
+          printf '${icon} <b>%s: %s ${event}</b>\n<pre>%s</pre>' "${host}" "$unit" "$body" |
+            curl --fail-with-body --silent --show-error --max-time 20 --retry 3 \
+              --config <(printf 'url = "https://api.telegram.org/bot%s/sendMessage"\n' "$TELEGRAM_BOT_TOKEN") \
+              --data-urlencode "chat_id=$TELEGRAM_CHAT_ID" \
+              --data-urlencode "parse_mode=HTML" \
+              --data-urlencode "disable_notification=${lib.boolToString silent}" \
+              --data-urlencode "text@-"
+        )"; then
+          printf '%s\n' "$out" >&2
+          exit 1
+        fi
       '';
     };
 
@@ -99,17 +116,17 @@ in
 
   config = {
     age.secrets = {
-      ntfy-url.file = ../secrets/ntfy-url.age;
+      telegram-env.file = ../secrets/telegram-env.age;
       healthchecks-url.file = ../secrets/healthchecks-url.age;
     };
 
     systemd.services = {
-      ## Failure pushes — ntfy tells you *what* broke
+      ## Failure pushes — Telegram tells you *what* broke
       "notify-failure@" = mkPush {
         event = "failed";
         lines = 30;
-        priority = "high";
-        tags = "rotating_light";
+        icon = "🚨";
+        silent = false;
       };
 
       ## Success pushes — a quiet receipt, e.g. "the upgrade ran"
@@ -117,12 +134,12 @@ in
       "notify-success@" = mkPush {
         event = "succeeded";
         lines = 5;
-        priority = "low";
-        tags = "white_check_mark";
+        icon = "✅";
+        silent = true;
       };
 
       ## Heartbeat — Healthchecks tells you *that* nothing broke
-      # The one alert ntfy structurally cannot raise: if an upgrade reboots
+      # The one alert Telegram structurally cannot raise: if an upgrade reboots
       # and the host never comes back, there is no failing unit left to push
       # anything. A missing ping is the signal, which is also why this must
       # not appear in mhnet.notify.units — its own failure is already covered

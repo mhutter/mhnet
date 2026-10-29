@@ -91,4 +91,4 @@ and `useACMEHost`, no Caddy plugin needed.
 - Caddy's own log: `journalctl -u caddy`.
 - Metrics on the admin endpoint `localhost:2019/metrics`, scraped as
   `job="caddy"`.
-- A failure of `caddy.service` pushes to ntfy.
+- A failure of `caddy.service` pushes to Telegram.

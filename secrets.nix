@@ -23,9 +23,9 @@ in
   "secrets/miniflux-env.age".publicKeys = hostRhea;
   "secrets/monitoring-password.age".publicKeys = hostRhea;
   "secrets/nix-serve-secret-key.age".publicKeys = hostRhea;
-  "secrets/ntfy-url.age".publicKeys = hostRhea;
   "secrets/pg-docspell.age".publicKeys = hostRhea;
   "secrets/restic-env.age".publicKeys = hostRhea;
   "secrets/restic-password.age".publicKeys = hostRhea;
   "secrets/silverbullet-env.age".publicKeys = hostRhea;
+  "secrets/telegram-env.age".publicKeys = hostRhea;
 }

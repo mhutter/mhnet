@@ -83,23 +83,23 @@ Users, contact points and notification policies live in `grafana.db` and are
 managed in the UI.
 
 - `FailedUnits` — one alert per failed unit, fleet only: rhea's units push to
-  ntfy directly (`mhnet.notify`, `docs/updates.md`).
+  Telegram directly (`mhnet.notify`, `docs/updates.md`).
 - `ConffileLeftovers` — `dpkg_conffile_leftovers > 0`.
 - `StaleTextfileMetrics` — a textfile older than 25h, i.e. a broken timer.
 
-Notifications go to the same ntfy topic as rhea's unit failures, through a
-Webhook contact point:
+Notifications go to the same Telegram chat as rhea's unit failures, through a
+Telegram contact point:
 
-| Setting          | Value                                                |
-| ---------------- | ---------------------------------------------------- |
-| URL              | `https://ntfy.sh` — the root, not the topic URL      |
-| HTTP method      | `POST`                                               |
-| Custom Payload   | `{{ template "ntfy.payload" . }}`                    |
-| Payload variable | `topic` = the topic name from `secrets/ntfy-url.age` |
+| Setting    | Value                                                |
+| ---------- | ---------------------------------------------------- |
+| Bot token  | `TELEGRAM_BOT_TOKEN` from `secrets/telegram-env.age` |
+| Chat ID    | `TELEGRAM_CHAT_ID` from the same file                |
+| Message    | `{{ template "telegram.message" . }}`                |
+| Parse mode | `HTML`                                               |
 
-A single alert opens its rule on tap and gets Silence and Logs buttons; a group
-opens the alert list. Firing is priority 4, resolved 2. The Telegram template
-(`telegram.message`, Parse mode `HTML`) is still provisioned.
+Each alert links its rule, a silence and, for a unit, its logs. ntfy.sh was
+dropped: its anonymous quota is per IP, a free account does not change that,
+and rhea's IPv6 bucket is shared with neighbours who exhaust it.
 
 ## Backups
 

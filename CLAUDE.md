@@ -95,7 +95,7 @@ Secrets, inside direnv / `nix develop`: `agenix -e secrets/<name>.age`,
   lock bump, which is why OIDC goes through `forwardAuth` and there is no
   DNS-01. `docs/proxy.md`.
 - **`mhnet.notify`** (`modules/notify.nix`) — modules append unit names to
-  `units` to get an `OnFailure=` ntfy push (`successUnits`: low-priority
+  `units` to get an `OnFailure=` Telegram push (`successUnits`: silent
   `OnSuccess=`). The hourly Healthchecks heartbeat is the dead-man switch and
   must stay out of `units`: its failure is already reported by the silence it
   causes.

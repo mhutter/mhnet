@@ -15,49 +15,6 @@ templates:
       {{ reReplaceAll "/alerting/silence/new.*" "" .SilenceURL }}/explore?left={{ urlquery `{"datasource":"victorialogs","queries":[{"refId":"A","expr":"_HOSTNAME:\"` .Labels.instance `\" AND _SYSTEMD_UNIT:\"` .Labels.unit `\""}],"range":{"from":"now-24h","to":"now"}}` }}
       {{- end }}
 
-  # ntfy's JSON publish format, for a Webhook contact point (UI-managed):
-  # URL = https://ntfy.sh (the root: JSON publishing names the topic in the
-  # body), Custom Payload = {{ template "ntfy.payload" . }}, and a payload
-  # variable `topic` holding the topic from secrets/ntfy-url.age, which
-  # thereby stays out of the repo. A single alert gets its links as action
-  # buttons (ntfy allows three); a group links to the alert list instead.
-  - orgId: 1
-    name: ntfy
-    template: |
-      {{ define "ntfy.title" -}}
-      {{ with .CommonLabels.alertname }}{{ . }}: {{ end -}}
-      {{ with .Alerts.Firing }}{{ len . }} firing{{ end -}}
-      {{ if and .Alerts.Firing .Alerts.Resolved }}, {{ end -}}
-      {{ with .Alerts.Resolved }}{{ len . }} resolved{{ end -}}
-      {{ end }}
-
-      {{ define "ntfy.message" -}}
-      {{ range $i, $a := .Alerts -}}
-      {{ if $i }}{{ "\n\n" }}{{ end -}}
-      {{ if eq $a.Status "firing" }}🔴{{ else }}✅{{ end }} {{ $a.Labels.alertname }}{{ with $a.Labels.instance }} · {{ . }}{{ end }}
-      {{- with $a.Annotations.summary }}{{ "\n" }}{{ . }}{{ end }}
-      {{- end }}
-      {{- end }}
-
-      {{ define "ntfy.payload" -}}
-      {{- $firing := gt (len .Alerts.Firing) 0 -}}
-      {{- $priority := 2 -}}
-      {{- if $firing }}{{ $priority = 4 }}{{ end -}}
-      {{- $click := printf "%s/alerting/list" (reReplaceAll "/+$" "" .ExternalURL) -}}
-      {{- $actions := coll.Slice -}}
-      {{- if eq (len .Alerts) 1 -}}
-        {{- $a := index .Alerts 0 -}}
-        {{- $click = $a.GeneratorURL -}}
-        {{- if eq $a.Status "firing" -}}
-          {{- $actions = coll.Append (coll.Dict "action" "view" "label" "Silence" "url" $a.SilenceURL) $actions -}}
-        {{- end -}}
-        {{- if $a.Labels.unit -}}
-          {{- $actions = coll.Append (coll.Dict "action" "view" "label" "Logs" "url" (tmpl.Exec "mhnet.unitLogsURL" $a)) $actions -}}
-        {{- end -}}
-      {{- end -}}
-      {{ coll.Dict "topic" .Vars.topic "title" (tmpl.Exec "ntfy.title" .) "message" (tmpl.Exec "ntfy.message" .) "priority" $priority "click" $click "actions" $actions | data.ToJSON }}
-      {{- end }}
-
   # Compact Telegram-friendly rendering; the default template dumps values,
   # every label, and bare URLs. To use it, point the Telegram contact point
   # (UI-managed) at it: Message = {{ template "telegram.message" . }} and
@@ -100,7 +57,7 @@ groups:
       # and the templates can link its journal. Healthy hosts export
       # no systemd_failed_unit series at all, hence noDataState OK; a dead
       # agent is still caught by StaleTextfileMetrics going NoData.
-      # rhea is left out: its units push to ntfy directly (mhnet.notify), with
+      # rhea is left out: its units push to Telegram directly (mhnet.notify), with
       # journal lines and without depending on Grafana being up.
       - uid: mhnet-failed-units
         title: FailedUnits

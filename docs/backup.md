@@ -49,7 +49,7 @@ pruned data lingers as hidden versions and is billed forever.
 | `restic-backups-rhea-prune.service` | `forget --prune`, then `check` |
 
 `forget` runs with the prune; restic's repository lock keeps the two jobs from
-colliding. A failure of either unit pushes an ntfy notification
+colliding. A failure of either unit pushes a Telegram notification
 (`mhnet.notify`).
 
 The path set is `/nix/persist` minus the journal, restic's cache

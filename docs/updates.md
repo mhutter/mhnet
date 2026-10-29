@@ -36,8 +36,8 @@ A new flake input is bumped only once it is added to the list in
 
 | Signal                 | Channel                                                             |
 | ---------------------- | ------------------------------------------------------------------- |
-| A wired unit failed    | ntfy push, high priority, with the last 30 journal lines            |
-| A wired unit succeeded | ntfy push, low priority, with the last 5 journal lines              |
+| A wired unit failed    | Telegram message, with the last 30 journal lines                    |
+| A wired unit succeeded | Telegram message, silent, with the last 5 journal lines             |
 | The system is degraded | the heartbeat pings Healthchecks' `/fail`, listing the failed units |
 | The host is gone       | no heartbeat; Healthchecks alerts after its grace period            |
 
@@ -51,11 +51,13 @@ acceptable.
 Setup, once — the flake does not evaluate without both secrets:
 
 ```sh
-agenix -e secrets/ntfy-url.age          # https://ntfy.sh/<unguessable-topic>
+agenix -e secrets/telegram-env.age      # TELEGRAM_BOT_TOKEN=…, TELEGRAM_CHAT_ID=…
 agenix -e secrets/healthchecks-url.age  # https://hc-ping.com/<uuid>
 ```
 
-The ntfy topic name is the password; subscribe to it in the phone app. In
+The bot token comes from `@BotFather`; the chat ID from
+`https://api.telegram.org/bot<token>/getUpdates` after messaging the bot. A
+failed send logs Telegram's error body in `journalctl -u 'notify-*'`. In
 Healthchecks, set a period above the ping interval and a grace that covers a
 reboot. The workflow needs only the default `GITHUB_TOKEN`.
 

@@ -207,11 +207,56 @@ in
       Group = "vector";
       StateDirectory = lib.mkForce "";
       ReadWritePaths = [ vectorDataDir ];
-      # DynamicUser implied it.
-      ProtectSystem = "strict";
       LoadCredential = [
         "monitoring-password:${config.age.secrets.monitoring-password.path}"
       ];
+
+      ## Hardening
+      # The module's only sandboxing is DynamicUser; dropping it lost what it
+      # implied (ProtectSystem, ProtectHome, PrivateTmp, RemoveIPC,
+      # RestrictSUIDSGID), so those come back here along with the rest.
+      ProtectSystem = "strict";
+      ProtectHome = true;
+      PrivateTmp = true;
+      PrivateDevices = true;
+      NoNewPrivileges = true;
+      ProtectClock = true;
+      ProtectHostname = true;
+      ProtectControlGroups = true;
+      ProtectKernelTunables = true;
+      ProtectKernelModules = true;
+      ProtectKernelLogs = true;
+      ProtectProc = "invisible";
+      # No ProcSubset=pid: the journald source runs journalctl, which reads
+      # the boot ID from /proc/sys.
+      # No PrivateUsers: the supplementary groups that grant the journal and
+      # Caddy's logs would be unmapped in the user namespace.
+      RestrictNamespaces = true;
+      RestrictSUIDSGID = true;
+      RestrictRealtime = true;
+      LockPersonality = true;
+      RemoveIPC = true;
+      # Rust, and VRL is interpreted, not JIT-compiled.
+      MemoryDenyWriteExecute = true;
+      # The module grants CAP_NET_BIND_SERVICE for low-port sources; nothing
+      # here listens. An empty list would render no line and keep the default.
+      AmbientCapabilities = lib.mkForce "";
+      CapabilityBoundingSet = "";
+      SystemCallFilter = [
+        "@system-service"
+        "~@privileged"
+      ];
+      SystemCallErrorNumber = "EPERM";
+      SystemCallArchitectures = "native";
+      UMask = "0077";
+      # HTTP only, and every scrape target and sink is on loopback.
+      RestrictAddressFamilies = [
+        "AF_UNIX"
+        "AF_INET"
+        "AF_INET6"
+      ];
+      IPAddressDeny = "any";
+      IPAddressAllow = "localhost";
     };
   };
 

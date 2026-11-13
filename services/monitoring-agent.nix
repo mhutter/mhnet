@@ -401,7 +401,7 @@ in
           req = object!(r.request)
           . = {
             "_time": from_unix_timestamp!(to_int(to_float!(r.ts) * 1000000), unit: "microseconds"),
-            "_msg": join!([string!(req.method), string!(req.host) + string!(req.uri), to_string!(r.status)], " "),
+            "_msg": join([string!(req.method), string!(req.host) + string!(req.uri), to_string!(r.status)], " "),
             "_HOSTNAME": "${host}",
             "log": "caddy-access",
             # Some clients send the port along, which would split the stream.

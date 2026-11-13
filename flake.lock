@@ -33,11 +33,11 @@
         ]
       },
       "locked": {
-        "lastModified": 1791354735,
-        "narHash": "sha256-LbzsHHVhuGVE1rdB1w6KYyopFaEOSNy6qwSJ4yM8UPE=",
+        "lastModified": 1794556354,
+        "narHash": "sha256-ODqr+LKvkLh2LDs2cUjzr7vSjY6rRNvYMtC8/U+uzvA=",
         "owner": "mhutter",
         "repo": "azerothcore-playerbots-nix",
-        "rev": "ec4e36b5a9da21a11a23503c4618e12c0cce6a32",
+        "rev": "e884fa2fb3076425adc9cdd078640b6743ced0fa",
         "type": "github"
       },
       "original": {

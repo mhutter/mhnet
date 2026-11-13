@@ -267,7 +267,9 @@
   notify: restart journal upload
 
 # journal-upload appends /upload to the URL, landing on VictoriaLogs'
-# /insert/journald/upload endpoint. The `-` key/cert values matter: for any
+# /insert/journald/upload endpoint. Without an explicit port it appends
+# :19532 to the end of the URL, path included (/insert/journald:19532/upload),
+# hence the :443. The `-` key/cert values matter: for any
 # https URL journal-upload otherwise loads its default client certificate
 # paths, which do not exist, and fails every upload. Header= needs
 # systemd >= 258 and carries the basic auth VictoriaLogs requires.
@@ -276,7 +278,7 @@
     content: |
       # Managed by Ansible (roles/monitoring_agent).
       [Upload]
-      URL={{ monitoring_logs_url }}/insert/journald
+      URL={{ monitoring_logs_url }}{{ '' if monitoring_logs_url | urlsplit('port') else ':443' }}/insert/journald
       ServerKeyFile=-
       ServerCertificateFile=-
       TrustedCertificateFile=/etc/ssl/certs/ca-certificates.crt

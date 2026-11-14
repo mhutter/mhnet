@@ -20,6 +20,7 @@ in
   "secrets/grafana-secret-key.age".publicKeys = hostRhea;
   "secrets/healthchecks-url.age".publicKeys = hostRhea;
   "secrets/immich-oauth-client-secret.age".publicKeys = hostRhea;
+  "secrets/kx-data-env.age".publicKeys = hostRhea;
   "secrets/miniflux-env.age".publicKeys = hostRhea;
   "secrets/monitoring-password.age".publicKeys = hostRhea;
   "secrets/nix-serve-secret-key.age".publicKeys = hostRhea;
